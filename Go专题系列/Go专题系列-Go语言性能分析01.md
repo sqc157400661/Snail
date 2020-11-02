@@ -1,6 +1,10 @@
 # 专题介绍
 
-> 性能分析  性能优化 排错 PProf Gops
+> 性能分析  性能优化 性能调优 排错 PProf Gops 
+
+
+
+面向：需要有Go语言基础
 
 
 
@@ -19,7 +23,8 @@
 5. 服务器进程死掉或者不断重启
 6. 进程还在，但是不提供服务
 7. 并发多的时候，程序才发生异常
-8. 某次迭代发布后的数小时内出现了应用程序无法提供服务的情况
+8. 重构系统后，上线后发现性能不佳
+9. 某次迭代发布后的数小时内出现了应用程序无法提供服务的情况
 
 如何避免这些问题那？平时我们应该做些什么？
 
@@ -46,3 +51,17 @@
 3. 进程诊断工具Gops
 4. 逃逸分析
 5. 常见线上问题举例说明
+
+
+
+
+
+参考：
+
+https://github.com/google/pprof/blob/master/doc/README.md
+
+https://segmentfault.com/a/1190000016412013
+
+http://blog.xiaot123.com/golang-pprof-uyagp
+
+https://www.php.cn/manual/view/35260.html

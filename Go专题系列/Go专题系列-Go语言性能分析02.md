@@ -80,3 +80,49 @@ Percentage of the requests served within a certain time (ms)
  100%    945 (longest request)
 ```
 
+
+
+
+
+
+
+------
+
+## 第二节：PProf简介
+
+### PProf是什么
+
+PProf是分析性能、分析数据的工具，并支持可视化的图形分析。**是Go语言中必知必会的技能点**。
+
+### PProf使用姿势
+
+采样方式
+
+- `runtime/pprof`：采集程序（非Server）指定区块的运行数据进行分析。·
+- `net/http/pprof`：基于HTTP Server运行，并且可以采集运行时的数据进行分析。·
+- `go test`：通过运行测试用例，指定所需标识进行采集。
+
+支持模式
+
+- Report Generation：报告生成。
+- Interactive Terminal Use：交互式终端使用。
+- Web Interface：Web界面。
+
+### PProf可以做什么
+
+-  CPU Profiling：CPU分析。按照一定的频率采集所监听的应用程序CPU（含寄存器）的使用情况，确定应用程序在主动消耗CPU周期时花费时间的位置。·
+- Memory Profiling：内存分析。在应用程序进行堆分配时记录堆栈跟踪，用于监视当前和历史内存使用情况，以及检查内存泄漏。·
+- Block Profiling：阻塞分析。记录goroutine阻塞等待同步（包括定时器通道）的位置，默认不开启，需要调用runtime.SetBlockProfileRate进行设置。·
+- Mutex Profiling：互斥锁分析。报告互斥锁的竞争情况，默认不开启，需要调用runtime.SetMutexProfileFraction进行设置。
+- Goroutine Profiling：goroutine分析，可以对当前应用程序正在运行的goroutine进行堆栈跟踪和分析。这项功能在实际排查中会经常用到，因为很多问题出现时的表象就是goroutine暴增，而这时候我们要做的事情之一就是查看应用程序中的 goroutine 正在做什么事情，因为什么阻塞了，然后再进行下一步分析。
+
+
+
+------
+
+
+
+## 第三节：PProf的使用
+
+### 一个简单的例子
+
