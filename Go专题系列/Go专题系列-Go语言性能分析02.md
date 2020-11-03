@@ -126,3 +126,62 @@ PProf是分析性能、分析数据的工具，并支持可视化的图形分析
 
 ### 一个简单的例子：
 
+```
+package main
+
+import (
+	"fmt"
+	"net/http"
+	_ "net/http/pprof" // 第一步～
+)
+
+// 创建map不指定容量
+func makeMap1() map[int]int {
+	mp := make(map[int]int)
+	for i:=0;i<100000;i++{
+		mp[i] = i
+	}
+	return mp
+}
+// 创建map指定容量
+func makeMap2() map[int]int {
+	mp := make(map[int]int,100000)
+	for i:=0;i<100000;i++{
+		mp[i] = i
+	}
+	return mp
+}
+
+func test1(w http.ResponseWriter, r *http.Request){
+	makeMap1()
+	makeMap2()
+	fmt.Println(1111)
+}
+
+func main() {
+	// 路由配置
+	http.HandleFunc("/test1", test1)
+	_ =http.ListenAndServe("0.0.0.0:6061", nil)
+}
+```
+
+说明：
+
+1. 在import中添加对`“net/http/pprof”`的引用
+2. 访问http://服务器地址:端口/debug/pprof/地址，检查是否正常响应
+
+![pprof_home](images/pprof_home.png)
+
+
+
+| 类型         | 描述                                      |
+| ------------ | ----------------------------------------- |
+| allocs       | **内存分配**情况的采样信息                |
+| blocks       | **阻塞**操作情况的采样信息                |
+| cmdline      | 显示程序启动**命令参数**及其参数          |
+| goroutine    | 显示当前所有**协程**的堆栈信息            |
+| heap         | **堆**上的内存分配情况的采样信息          |
+| mutex        | **锁**竞争情况的采样信息                  |
+| profile      | **cpu**占用情况的采样信息，点击会下载文件 |
+| threadcreate | 系统**线程**创建情况的采样信息            |
+| trace        | 程序**运行跟踪**信息                      |
