@@ -3,26 +3,48 @@ package main
 import (
 	"fmt"
 	"net/http"
-	_ "net/http/pprof"  // 第一步～
+	_ "net/http/pprof" // 第一步～
 )
 
-// 一段有问题的代码
-func do() {
-	var c chan int
-	for {
-		select {
-		case v := <-c:
-			fmt.Printf("我是有问题的那一行，通道无法读取到值：%v", v)
-		default:
-
-		}
+// 创建map不指定容量
+func makeMap1() map[int]int {
+	mp := make(map[int]int)
+	for i:=0;i<100000;i++{
+		mp[i] = i
 	}
+	return mp
+}
+// 创建map指定容量
+func makeMap2() map[int]int {
+	mp := make(map[int]int,100000)
+	for i:=0;i<100000;i++{
+		mp[i] = i
+	}
+	return mp
+}
+
+func test1(w http.ResponseWriter, r *http.Request){
+	makeMap1()
+	makeMap2()
+	fmt.Println(1111)
 }
 
 func main() {
-	// 执行一段有问题的代码
-	for i := 0; i < 4; i++ {
-		go do()
-	}
+	// 路由配置
+	http.HandleFunc("/test1", test1)
 	_ =http.ListenAndServe("0.0.0.0:6061", nil)
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+//
