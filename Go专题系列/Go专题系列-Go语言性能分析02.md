@@ -532,3 +532,30 @@ Cond的主要作用就是获取锁之后，wait()方法会等待一个通知，�
 
 
 ## 第五节：可视化界面
+
+```
+wget http://127.0.0.1:6061/debug/pprof/profile
+```
+
+默认需要等待30s，执行完毕后在当前目录下可发现采集的profile文件。下面咱们来生成可视化界面：
+
+```
+// 这里端口自定义 只要你能访问到就行
+go tool pprof -http=:8000 profile
+```
+
+可能会出现`Could not execute dot; may need to install graphviz.`，那么意味着需要安装 graphviz组件。
+
+windows下安装：
+
+1. `Graphviz.7z`解压后
+2. 将graphviz安装目录下的bin文件夹添加到Path环境变量中。
+3. 在终端输入dot -version查看是否安装成功。
+
+通过PProf提供的可视化界面，我们能够更方便、更直观地看到Go应用程序的调用链和使用情况等。另外，在View菜单栏中，PProf还支持多种分析方式的切换，如图
+
+
+
+
+
+接下来我们将对基于CPU Profiling抓取的profile文件进行一一介绍。profile类型的分析模式是互通的，只需了解一种即可。
