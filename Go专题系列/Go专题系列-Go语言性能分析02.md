@@ -285,12 +285,22 @@ ROUTINE ======================== main.makeMap1 in D:\www\Snail\Go涓撻绯诲
 ##### 常用交互命令行
 
 - help  可以查看所有命令的使用说明
+
 - **top** 	可以查看TOP多少分配情况
+
 - **list** 	 展示源码及相应损耗
+
 - **web** 	使用浏览器视图展开
+
 - tree 	以树状显示
+
 - png 	以图片格式输出
+
 - svg 	生成浏览器可以识别的svg文件
+
+- traces 打印所有调用栈信息
+
+  注意：PProf中的所有功能都会根据 Profile的不同类型展示不同的对应结果
 
 #### Heap Profiling:
 
@@ -329,8 +339,72 @@ Showing nodes accounting for 880.32kB, 100% of 880.32kB total
 
 #### Goroutine Profiling:
 
+```
+go tool pprof http://127.0.0.1:6061/debug/pprof/goroutine
+```
+
+这里我们在使用一个新的交互命令:
+
+1. goroutine 时可以使用traces命令，这个命令会打印出对应的所有调用栈，以及指标信息。
+2. 查看整个调用链路详情。在哪里使用了多少个goroutine,并且通过分析可以知道谁才是真正的调用方
+
+```
+(pprof) traces
+Type: goroutine
+Time: Nov 4, 2020 at 11:10am (CST)
+-----------+-------------------------------------------------------
+         1   runtime.gopark
+             runtime.netpollblock
+             internal/poll.runtime_pollWait
+             internal/poll.(*pollDesc).wait
+             internal/poll.(*ioSrv).ExecIO
+             internal/poll.(*FD).Read
+             net.(*netFD).Read
+             net.(*conn).Read
+             net/http.(*connReader).backgroundRead
+-----------+-------------------------------------------------------
+         1   runtime.gopark
+             runtime.netpollblock
+             internal/poll.runtime_pollWait
+             internal/poll.(*pollDesc).wait
+             internal/poll.(*ioSrv).ExecIO
+             internal/poll.(*FD).acceptOne
+             internal/poll.(*FD).Accept
+             net.(*netFD).accept
+             net.(*TCPListener).accept
+             net.(*TCPListener).Accept
+             net/http.(*Server).Serve
+             net/http.(*Server).ListenAndServe
+             net/http.ListenAndServe
+             main.main
+             runtime.main
+-----------+-------------------------------------------------------
+         1   runtime/pprof.writeRuntimeProfile
+             runtime/pprof.writeGoroutine
+             runtime/pprof.(*Profile).WriteTo
+             net/http/pprof.handler.ServeHTTP
+             net/http/pprof.Index
+             net/http.HandlerFunc.ServeHTTP
+             net/http.(*ServeMux).ServeHTTP
+             net/http.serverHandler.ServeHTTP
+             net/http.(*conn).serve
+-----------+-------------------------------------------------------
+(pprof)
+```
+
+说明：
+
+1. 调用栈上的展示是自下而上的，也就是说 runtime.main方法调用了 main.main方法，而main.main方法又调用了 net/http.ListenAndServe 方法，排查起来比较方便。
+2. 每个调用栈信息都是用 ------- 分割，函数方法前面的是指标数据，例如，Gorutine Profiling 展示的是该方法占用的 goroutine的数量
+
 
 
 #### Mutex Profiling:
+
+在调用 chan （通道）、sync.Mutex （同步锁）或者 time.Sleep() 时会造成阻塞，为了验证互斥锁的竞争持有者的堆栈跟踪情况，我们调整先前的示例代码[需要制定采集频率]
+
+
+
+
 
 #### Block Profiling:
