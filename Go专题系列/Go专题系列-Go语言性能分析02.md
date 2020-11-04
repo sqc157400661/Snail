@@ -168,6 +168,17 @@ func main() {
 说明：
 
 1. 在import中添加对`“net/http/pprof”`的引用
+
+   ​	如果应用使用了自定义的 `Mux`，则需要手动注册一些路由规则：
+
+   ```
+   r.HandleFunc("/debug/pprof/", pprof.Index)
+   r.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+   r.HandleFunc("/debug/pprof/profile", pprof.Profile)
+   r.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+   r.HandleFunc("/debug/pprof/trace", pprof.Trace)
+   ```
+
 2. 访问http://服务器地址:端口/debug/pprof/地址，检查是否正常响应
 
 ### 通过浏览器访问
@@ -182,7 +193,7 @@ func main() {
 | ------------ | ----------------------------------------- |
 | allocs       | **内存分配**情况的采样信息                |
 | blocks       | **阻塞**操作情况的采样信息                |
-| cmdline      | 显示程序启动**命令和其完整路径            |
+| cmdline      | 显示程序启动命令和其完整路径              |
 | goroutine    | 显示当前所有**协程**的堆栈信息            |
 | heap         | **堆**上的内存分配情况的采样信息          |
 | mutex        | **锁**竞争情况的采样信息                  |
@@ -235,14 +246,64 @@ go tool pprof http://127.0.0.1:6061/debug/pprof/profile?seconds=60
    (pprof)
    
    ```
-
-· flat：函数自身的运行耗时。· flat%：函数自身占CPU运行总耗时的比例。· sum%：函数自身累积使用占CPU运行总耗时比例。· cum：函数自身及其调用函数的运行总耗时。· cum%：函数自身及其调用函数占CPU运行总耗时的比例。· Name：函数名。
-
-
+   
+   参数说明：
+   
+   - `flat`：当前函数的运行耗时。
+   - `flat%`：当前函数占CPU运行总耗时的比例。
+   - `sum%`：当前函数累积使用占CPU运行总耗时比例。
+   - ` cum`：当前函数加上调用当前函数的函数占用CPU的总耗时。
+   -  `cum%`：当前函数加上调用当前函数的函数占用CPU的总耗时百分比。
+   - `最后一列`：函数名。
 
 在大多数情况下，我们可以得出一个应用程序的运行情况，知道当前是什么函数，正在做什么事情，占用了多少资源等等，以此得到一个初步的分析方向。
 
+我们还可以使用`list 函数名`命令查看具体的函数分析，例如执行`list makeMap1`查看我们编写的函数的详细分析:
+
+```
+(pprof) list makeMap1
+Total: 2s
+ROUTINE ======================== main.makeMap1 in D:\www\Snail\Go涓撻绯诲垪\code\Go璇█鎬ц兘鍒嗘瀽\pprof\main.go
+      20ms      960ms (flat, cum) 48.00% of Total
+         .          .      7:)
+         .          .      8:
+         .          .      9:// 鍒涘缓map涓嶆寚瀹氬閲?         .          .     10:func makeMap1() map[int]int {
+         .          .     11:   mp := make(map[int]int)
+      20ms       20ms     12:   for i:=0;i<100000;i++{
+         .      940ms     13:           mp[i] = i
+         .          .     14:   }
+         .          .     15:   return mp
+         .          .     16:}
+         .          .     17:// 鍒涘缓map鎸囧畾瀹归噺
+         .          .     18:func makeMap2() map[int]int {
+(pprof)
+
+```
+
+可以看出该函数那一行占用CPU资源最多。
+
+##### 常用交互命令行
+
+- help  可以查看所有命令的使用说明
+- **top** 	可以查看TOP多少分配情况
+- **list** 	 展示源码及相应损耗
+- **web** 	使用浏览器视图展开
+- tree 	以树状显示
+- png 	以图片格式输出
+- svg 	生成浏览器可以识别的svg文件
+
 #### Heap Profiling:
+
+```
+ go tool pprof http://127.0.0.1:6061/debug/pprof/heap
+```
+
+1. 在执行该命令后，能够很快地拉取到结果，因为它不像CPU Profiling那样需要做采样等待。
+2. 它还有j几个个参数选项，默认选项是`inuse_space`
+   1. inuse_space：分析应用程序常驻内存的占用情况。
+   2. alloc_objects：分析应用程序的内存临时分配情况。
+
+需要注意的是，Type这个选项默认显示的是inuse_space，实际上，它可以对多种内存概况进行分析，常用的类别
 
 #### Goroutine Profiling:
 
