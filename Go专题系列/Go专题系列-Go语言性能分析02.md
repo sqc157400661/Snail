@@ -258,7 +258,7 @@ go tool pprof http://127.0.0.1:6061/debug/pprof/profile?seconds=60
 
 在大多数情况下，我们可以得出一个应用程序的运行情况，知道当前是什么函数，正在做什么事情，占用了多少资源等等，以此得到一个初步的分析方向。
 
-我们还可以使用`list 函数名`命令查看具体的函数分析，例如执行`list makeMap1`查看我们编写的函数的详细分析:
+我们还可以使用`list 函数名`命令查看具体的函数分析，例如执行`list makeMap1`查看我们编写的函数的详细分析 (若函数名不明确，则默认对该函数名进行模糊匹配):
 
 ```
 (pprof) list makeMap1
@@ -401,10 +401,130 @@ Time: Nov 4, 2020 at 11:10am (CST)
 
 #### Mutex Profiling:
 
-在调用 chan （通道）、sync.Mutex （同步锁）或者 time.Sleep() 时会造成阻塞，为了验证互斥锁的竞争持有者的堆栈跟踪情况，我们调整先前的示例代码[需要制定采集频率]
+在调用 chan （通道）、sync.Mutex （同步锁）或者 time.Sleep() 时会造成阻塞，为了验证互斥锁的竞争持有者的堆栈跟踪情况，我们调整先前的示例代码
 
+```
+package main
 
+import (
+	"net/http"
+	_ "net/http/pprof" 
+	"runtime"
+	"sync"
+)
+
+func test1(w http.ResponseWriter, r *http.Request){
+	var m sync.Mutex
+	var datas = make(map[int]struct{})
+	for i:=0;i<999;i++ {
+		go func(i int) {
+			m.Lock()
+			defer m.Unlock()
+			datas[i] = struct{}{}
+		}(i)
+	}
+}
+
+func init() {
+	runtime.SetMutexProfileFraction(1) // 开启对锁调用的跟踪
+}
+func main() {
+	// 路由配置
+	http.HandleFunc("/test1", test1)
+	_ =http.ListenAndServe("0.0.0.0:6061", nil)
+}
+```
+
+**特别注意** ：`runtime.SetMutexProfileFraction`语句，如果未来希望对互斥锁进行采集，则需要调用该方法设置采集频率。如果没有设置，或设置的数值小于0，则不进行采集。
+
+```
+ go tool pprof http://127.0.0.1:6061/debug/pprof/mutex
+```
+
+调用top命令，查看互斥量的排名：
+
+```
+(pprof) top
+Showing nodes accounting for 655.27us, 100% of 655.27us total
+      flat  flat%   sum%        cum   cum%
+  655.27us   100%   100%   655.27us   100%  sync.(*Mutex).Unlock
+         0     0%   100%   655.27us   100%  main.test1.func1
+(pprof)
+```
+
+调用 list命令 查看指定函数的代码情况 （包含特定的指标信息，如耗时）,这个地方表示引起互斥锁函数，以及锁开销的位置。
+
+```
+(pprof) list test1
+Total: 655.27us
+ROUTINE ======================== main.test1.func1 in D:\www\Snail\Go涓撻绯诲垪\code\Go璇█鎬ц兘鍒嗘瀽\pprof\main.go
+         0   655.27us (flat, cum)   100% of Total
+         .          .     13:   for i:=0;i<999;i++ {
+         .          .     14:           go func(i int) {
+         .          .     15:                   m.Lock()
+         .          .     16:                   defer m.Unlock()
+         .          .     17:                   datas[i] = struct{}{}
+         .   655.27us     18:           }(i)
+         .          .     19:   }
+         .          .     20:}
+         .          .     21:
+         .          .     22:func init() {
+         .          .     23:   runtime.SetMutexProfileFraction(1) // 寮€鍚閿佽皟鐢ㄧ殑璺熻釜
+(pprof)
+```
 
 
 
 #### Block Profiling:
+
+与 Mutex 的 runtime.SetMutexProfileFraction 语句类似，Block也需要调用 runtime.SetBlockProfileRate 语句进行设置，如果没有设置，或者设置数值小于0，则不进行采集
+
+```
+package main
+
+import (
+	"net/http"
+	_ "net/http/pprof" // 第一步～
+	"runtime"
+)
+
+func test1(w http.ResponseWriter, r *http.Request){
+	var ch chan int = make(chan int)
+	for i:=0;i<999;i++ {
+		go func(i int) {
+			ch<-i
+		}(i)
+	}
+}
+
+func init() {
+	runtime.SetMutexProfileFraction(1) // 开启对锁调用的跟踪
+	runtime.SetBlockProfileRate(1)
+}
+func main() {
+	// 路由配置
+	http.HandleFunc("/test1", test1)
+	_ =http.ListenAndServe("0.0.0.0:6061", nil)
+}
+```
+
+```
+go tool pprof http://127.0.0.1:6061/debug/pprof/block
+```
+
+调用 top 命令，查看阻塞情况排名：
+
+```
+(pprof) top
+Showing nodes accounting for 331.46us, 100% of 331.46us total
+      flat  flat%   sum%        cum   cum%
+  331.46us   100%   100%   331.46us   100%  sync.(*Cond).Wait
+         0     0%   100%   331.46us   100%  net/http.(*conn).serve
+         0     0%   100%   331.46us   100%  net/http.(*connReader).abortPendingRead
+         0     0%   100%   331.46us   100%  net/http.(*response).finishRequest
+(pprof)
+```
+
+ps：
+
+Cond的主要作用就是获取锁之后，wait()方法会等待一个通知，来进行下一步锁释放等操作，以此控制锁合适的释放，释放频率等。适用于在并发环境下goroutine的等待和通知。
