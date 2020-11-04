@@ -300,12 +300,36 @@ ROUTINE ======================== main.makeMap1 in D:\www\Snail\Go涓撻绯诲
 
 1. 在执行该命令后，能够很快地拉取到结果，因为它不像CPU Profiling那样需要做采样等待。
 2. 它还有j几个个参数选项，默认选项是`inuse_space`
-   1. inuse_space：分析应用程序常驻内存的占用情况。
-   2. alloc_objects：分析应用程序的内存临时分配情况。
+   1. inuse_space：未释放空间数。
+   2. alloc_space : 所有分配空间数
+   3. inuse_objects : 未释放对象数
+   4. alloc_objects：所有分配对象数。
 
-需要注意的是，Type这个选项默认显示的是inuse_space，实际上，它可以对多种内存概况进行分析，常用的类别
+```
+// 结果:
+Fetching profile over HTTP from http://127.0.0.1:6061/debug/pprof/heap
+Saved profile in C:\Users\viruser.v-desktop\pprof\pprof.alloc_objects.alloc_space.inuse_objects.inuse_space.007.pb.gz
+Type: inuse_space
+Time: Nov 4, 2020 at 10:37am (CST)
+Entering interactive mode (type "help" for commands, "o" for options)
+(pprof) top
+Showing nodes accounting for 880.32kB, 100% of 880.32kB total
+      flat  flat%   sum%        cum   cum%
+  880.32kB   100%   100%   880.32kB   100%  main.makeMap1
+         0     0%   100%   880.32kB   100%  main.test1
+         0     0%   100%   880.32kB   100%  net/http.(*ServeMux).ServeHTTP
+         0     0%   100%   880.32kB   100%  net/http.(*conn).serve
+         0     0%   100%   880.32kB   100%  net/http.HandlerFunc.ServeHTTP
+         0     0%   100%   880.32kB   100%  net/http.serverHandler.ServeHTTP
+(pprof)
+
+```
+
+
 
 #### Goroutine Profiling:
+
+
 
 #### Mutex Profiling:
 
