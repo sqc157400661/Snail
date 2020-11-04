@@ -196,3 +196,56 @@ func main() {
 2. 不新增debug参数，那么将会直接下载对应的profile文件。
 3. 在部署环境中，我们为了网络安全，通常不会直接对外网暴露 PProf 的相关端口，因此会通过curl、wget等方式进行profile文件的间接拉取
 4. 在实际场景中，我们常常需要及时将当前状态下的profile文件给存储下来，便于二次分析。
+
+### 通过交互式终端使用
+
+第二种方式是直接通过命令行完成对正在运行的应用程序PProf进行抓取和分析。
+
+#### CPU Profiling:
+
+```
+go tool pprof http://127.0.0.1:6061/debug/pprof/profile?seconds=60
+```
+
+1. 在执行该命令后，需等待60 s（可调整 seconds 的值），PProf会进行 CPU Profiling，结束后将默认进入PProf的命令行交互式模式，查看或导出分析结果。
+
+2. 输入查询命令 top10，查看对应资源开销（例如，CPU 就是执行耗时/开销、Memory 就是内存占用大小）排名前十的函数，命令如下：
+
+   ```
+   (pprof) top 15
+   Showing nodes accounting for 10820ms, 85.60% of 12640ms total
+   Dropped 161 nodes (cum <= 63.20ms)
+   Showing top 15 nodes out of 99
+         flat  flat%   sum%        cum   cum%
+       5150ms 40.74% 40.74%     8950ms 70.81%  runtime.mapassign_fast64
+        760ms  6.01% 46.76%      760ms  6.01%  runtime.memclrNoHeapPointers
+        760ms  6.01% 52.77%      760ms  6.01%  runtime.stdcall3
+        650ms  5.14% 57.91%     2100ms 16.61%  runtime.evacuate_fast64
+        560ms  4.43% 62.34%      560ms  4.43%  runtime.bucketShift
+        540ms  4.27% 66.61%      540ms  4.27%  runtime.stdcall1
+        430ms  3.40% 70.02%      430ms  3.40%  runtime.cgocall
+        320ms  2.53% 72.55%      320ms  2.53%  runtime.add
+        320ms  2.53% 75.08%      320ms  2.53%  runtime.isEmpty
+        300ms  2.37% 77.45%      300ms  2.37%  runtime.aeshash64
+        230ms  1.82% 79.27%      230ms  1.82%  runtime.evacuated
+        230ms  1.82% 81.09%      230ms  1.82%  runtime.procyield
+        210ms  1.66% 82.75%     5740ms 45.41%  main.makeMap1
+        210ms  1.66% 84.41%      210ms  1.66%  runtime.(*guintptr).cas
+        150ms  1.19% 85.60%      150ms  1.19%  runtime.memmove
+   (pprof)
+   
+   ```
+
+· flat：函数自身的运行耗时。· flat%：函数自身占CPU运行总耗时的比例。· sum%：函数自身累积使用占CPU运行总耗时比例。· cum：函数自身及其调用函数的运行总耗时。· cum%：函数自身及其调用函数占CPU运行总耗时的比例。· Name：函数名。
+
+
+
+在大多数情况下，我们可以得出一个应用程序的运行情况，知道当前是什么函数，正在做什么事情，占用了多少资源等等，以此得到一个初步的分析方向。
+
+#### Heap Profiling:
+
+#### Goroutine Profiling:
+
+#### Mutex Profiling:
+
+#### Block Profiling:
