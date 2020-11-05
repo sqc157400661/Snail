@@ -559,3 +559,12 @@ windows下安装：
 
 
 接下来我们将对基于CPU Profiling抓取的profile文件进行一一介绍。profile类型的分析模式是互通的，只需了解一种即可。
+
+
+
+https://blog.csdn.net/skh2015java/article/details/102748222
+
+
+
+https://www.liwenzhou.com/posts/Go/performance_optimisation/
+
