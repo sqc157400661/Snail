@@ -552,19 +552,54 @@ windows下安装：
 2. 将graphviz安装目录下的bin文件夹添加到Path环境变量中。
 3. 在终端输入dot -version查看是否安装成功。
 
-通过PProf提供的可视化界面，我们能够更方便、更直观地看到Go应用程序的调用链和使用情况等。另外，在View菜单栏中，PProf还支持多种分析方式的切换，如图
+通过PProf提供的可视化界面，我们能够更方便、更直观地看到Go应用程序的调用链和使用情况等。另外，在View菜单栏中，PProf还支持多种分析方式，如图
+
+![pprof_gongneng](images/pprof_gongneng.png)
+
+
+
+### profile文件分析CPU Profiling
+
+我们将对基于`CPU Profiling`抓取的profile文件进行一一介绍。其实profile文件类型的分析模式是互通的，只需了解一种即可。
+
+#### Top
+
+该视图与前文讲解的top命令的作用和含义是一样的
+
+#### Graph视图
+
+视图展示的是整体的函数调用流程，框越大、线越粗、框颜色越鲜艳（红色），代表它占用的时间越久，开销越大。相反，框越小、线越浅、框颜色越淡，则代表在整体的函数调用流程中，它的开销越小。
+
+
+
+因此我们可以用此视图分析谁才是开销大头，它又是因为什么调用流程而被调用的。
+
+#### Flame Graph视图
+
+Flame Graph（火焰图）是动态的，调用顺序由上到下（A→B→C→D），每一块代表一个函数、颜色越鲜艳（红）、区块越大，代表占用CPU的时间越长。同时它还支持点击块进行深入分析。
+
+
+
+#### Peek视图
+
+此视图与Top视图相比，增加了所属上下文信息的展示，即函数的输出调用者和被调用者。
+
+
+
+#### Source视图
+
+
+
+该视图主要增加了面向源代码的追踪和分析，可以看到其开销主要消耗在哪里。
 
 
 
 
 
-接下来我们将对基于CPU Profiling抓取的profile文件进行一一介绍。profile类型的分析模式是互通的，只需了解一种即可。
+## 第六节：通过测试用例做剖析
 
 
 
-https://blog.csdn.net/skh2015java/article/details/102748222
 
 
-
-https://www.liwenzhou.com/posts/Go/performance_optimisation/
-
+## 第七节：通过Lookup写入文件做剖析

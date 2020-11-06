@@ -7,7 +7,7 @@ import (
 )
 
 // 创建map不指定容量
-func makeMap1() map[int]int {
+func MakeMap1() map[int]int {
 	mp := make(map[int]int)
 	for i := 0; i < 100000; i++ {
 		mp[i] = i
@@ -16,7 +16,7 @@ func makeMap1() map[int]int {
 }
 
 // 创建map指定容量
-func makeMap2() map[int]int {
+func MakeMap2() map[int]int {
 	mp := make(map[int]int, 100000)
 	for i := 0; i < 100000; i++ {
 		mp[i] = i
@@ -25,8 +25,8 @@ func makeMap2() map[int]int {
 }
 
 func test1(w http.ResponseWriter, r *http.Request) {
-	makeMap1()
-	makeMap2()
+	MakeMap1()
+	MakeMap2()
 	var ii interface{}
 	ii = 1
 	ii = "32342"
