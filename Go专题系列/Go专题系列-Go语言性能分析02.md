@@ -208,9 +208,48 @@ func main() {
 3. 在部署环境中，我们为了网络安全，通常不会直接对外网暴露 PProf 的相关端口，因此会通过curl、wget等方式进行profile文件的间接拉取
 4. 在实际场景中，我们常常需要及时将当前状态下的profile文件给存储下来，便于二次分析。
 
+附：Heap 参数详解
+
+```
+
+Alloc uint64 //golang语言框架堆空间分配的字节数
+TotalAlloc uint64 //从服务开始运行至今分配器为分配的堆空间总 和，只有增加，释放的时候不减少
+Sys uint64 //服务现在系统使用的内存
+Lookups uint64 //被runtime监视的指针数
+Mallocs uint64 //服务malloc heap objects的次数
+Frees uint64 //服务回收的heap objects的次数
+HeapAlloc uint64 //服务分配的堆内存字节数
+HeapSys uint64 //系统分配的作为运行栈的内存
+HeapIdle uint64 //申请但是未分配的堆内存或者回收了的堆内存（空闲）字节数
+HeapInuse uint64 //正在使用的堆内存字节数
+HeapReleased uint64 //返回给OS的堆内存，类似C/C++中的free。
+HeapObjects uint64 //堆内存块申请的量
+StackInuse uint64 //正在使用的栈字节数
+StackSys uint64 //系统分配的作为运行栈的内存
+MSpanInuse uint64 //用于测试用的结构体使用的字节数
+MSpanSys uint64 //系统为测试用的结构体分配的字节数
+MCacheInuse uint64 //mcache结构体申请的字节数(不会被视为垃圾回收)
+MCacheSys uint64 //操作系统申请的堆空间用于mcache的字节数
+BuckHashSys uint64 //用于剖析桶散列表的堆空间
+GCSys uint64 //垃圾回收标记元信息使用的内存
+OtherSys uint64 //golang系统架构占用的额外空间
+NextGC uint64 //垃圾回收器检视的内存大小
+LastGC uint64 // 垃圾回收器最后一次执行时间。
+PauseTotalNs uint64 // 垃圾回收或者其他信息收集导致服务暂停的次数。
+PauseNs [256]uint64 //一个循环队列，记录最近垃圾回收系统中断的时间
+PauseEnd [256]uint64 //一个循环队列，记录最近垃圾回收系统中断的时间开始点。
+NumForcedGC uint32 //服务调用runtime.GC()强制使用垃圾回收的次数。
+GCCPUFraction float64 //垃圾回收占用服务CPU工作的时间总和。如果有100个goroutine，垃圾回收的时间为1S,那么就占用了100S。
+BySize //内存分配器使用情况
+```
+
+
+
 ## 第四节：通过交互式终端使用
 
 第二种方式是直接通过命令行完成对正在运行的应用程序PProf进行抓取和分析。
+
+**注意事项：** 获取的 Profiling 数据是动态的，要想获得有效的数据，请保证应用处于较大的负载（比如正在生成中运行的服务，或者通过其他工具模拟访问压力）。否则如果应用处于空闲状态，得到的结果可能没有任何意义。
 
 ### CPU Profiling:
 
@@ -562,6 +601,8 @@ windows下安装：
 
 我们将对基于`CPU Profiling`抓取的profile文件进行一一介绍。其实profile文件类型的分析模式是互通的，只需了解一种即可。
 
+
+
 #### Top
 
 该视图与前面讲解命令行交互的top命令的作用和含义是一样的
@@ -580,7 +621,10 @@ ps：点击栏目可以进行相关的排序
 
 #### Flame Graph视图
 
-Flame Graph（火焰图）是动态的，调用顺序由上到下（A→B→C→D），每一块代表一个函数、颜色越鲜艳（红）、区块越大，代表占用CPU的时间越长。同时它还支持点击块进行深入分析。
+1. Flame Graph（火焰图）是动态的，调用顺序由上到下（A→B→C→D）
+2. x 轴表示抽样数，如果一个函数在 x 轴占据的宽度越宽，就表示它被抽到的次数多，即执行的时间长。
+3. y 轴表示调用栈，每一层都是一个函数。调用栈越深，火焰就越高
+4. 每一块代表一个函数、颜色越鲜艳（红）、区块越大，代表占用CPU的时间越长。同时它还支持点击块进行深入分析。
 
 ![pprof_gongneng](images/pprof_Flame_Graph.png)
 
@@ -596,12 +640,55 @@ Flame Graph（火焰图）是动态的，调用顺序由上到下（A→B→C→
 
 ![pprof_gongneng](images/pprof_Source.png)
 
+### trace分析
+
+先采集trace信息，并下载分析文件
+
+```
+wget  http://127.0.0.1:6061/debug/pprof/trace?seconds=10
+```
+
+trace文件存下来后，需要用到`go tool` 的`trace`命令来解析，才能像其他的命令一样看到详细的tracec信息。
+执行`go tool trace trace文件`解析trace文件，之后会有一个端口，在这个端口上查看trace信息。如下如：
+
+```
+$ go tool trace trace
+2020/11/06 17:09:49 Parsing trace...
+2020/11/06 17:09:50 Splitting trace...
+2020/11/06 17:09:50 Opening browser. Trace viewer is listening on http://127.0.0.1:51073
+```
 
 
-## 第六节：通过测试用例做剖析
+
+## 第六节：与性能测试结合做剖析
+
+`go test`命令有两个参数和 pprof 相关，它们分别指定生成的 CPU 和 Memory profiling 保存的文件：
+
+- -cpuprofile：cpu profiling 数据要保存的文件地址
+- -memprofile：memory profiling 数据要报文的文件地址
 
 
 
+### CPU profiling 
 
+```
+//执行性能测试的同时，也会执行 CPU profiling，并把结果保存在 cpu.prof 文件中：
+go test -bench=. -cpuprofile=cpu.profile
+
+//分析查看报告
+go tool pprof -http=:8001 cpu.profile
+```
+
+### Memory profiling
+
+```
+//执行测试的同时，也会执行 Mem profiling，并把结果保存在 cpu.prof 文件中：
+go test -bench . -memprofile=mem.profile
+
+//分析查看报告
+go tool pprof -http=:8001 mem.profile
+```
+
+需要注意的是，Profiling 一般和性能测试一起使用，这个原因在前文也提到过，只有应用在负载高的情况下 Profiling 才有意义。
 
 ## 第七节：通过Lookup写入文件做剖析
