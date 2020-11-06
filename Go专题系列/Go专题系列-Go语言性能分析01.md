@@ -46,7 +46,8 @@
     	5. 可视化的内容说明
     	6. 实例分析说明
     	7. 对比和采样
-    	8. 总结
+    	8. 线上如何使用pprof 开关？定期采样？
+    	9. 总结
 2. GODEBUG工具
 3. 进程诊断工具Gops
 4. 逃逸分析
@@ -60,8 +61,10 @@
 
 https://github.com/google/pprof/blob/master/doc/README.md
 
-https://segmentfault.com/a/1190000016412013
-
-http://blog.xiaot123.com/golang-pprof-uyagp
-
 https://www.php.cn/manual/view/35260.html
+
+
+
+trace：https://blog.csdn.net/qq_30549833/article/details/89381790
+
+golang pprof 实战https://blog.wolfogre.com/posts/go-ppof-practice/
