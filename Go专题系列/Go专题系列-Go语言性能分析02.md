@@ -564,13 +564,17 @@ windows下安装：
 
 #### Top
 
-该视图与前文讲解的top命令的作用和含义是一样的
+该视图与前面讲解命令行交互的top命令的作用和含义是一样的
+
+ps：点击栏目可以进行相关的排序
+
+![pprof_gongneng](images/pprof_top.png)
 
 #### Graph视图
 
 视图展示的是整体的函数调用流程，框越大、线越粗、框颜色越鲜艳（红色），代表它占用的时间越久，开销越大。相反，框越小、线越浅、框颜色越淡，则代表在整体的函数调用流程中，它的开销越小。
 
-
+![pprof_gongneng](images/pprof_Graph.png)
 
 因此我们可以用此视图分析谁才是开销大头，它又是因为什么调用流程而被调用的。
 
@@ -578,21 +582,19 @@ windows下安装：
 
 Flame Graph（火焰图）是动态的，调用顺序由上到下（A→B→C→D），每一块代表一个函数、颜色越鲜艳（红）、区块越大，代表占用CPU的时间越长。同时它还支持点击块进行深入分析。
 
-
+![pprof_gongneng](images/pprof_Flame_Graph.png)
 
 #### Peek视图
 
 此视图与Top视图相比，增加了所属上下文信息的展示，即函数的输出调用者和被调用者。
 
-
+![pprof_gongneng](images/pprof_Peek.png)
 
 #### Source视图
 
-
-
 该视图主要增加了面向源代码的追踪和分析，可以看到其开销主要消耗在哪里。
 
-
+![pprof_gongneng](images/pprof_Source.png)
 
 
 
