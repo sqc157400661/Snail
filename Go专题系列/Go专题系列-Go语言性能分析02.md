@@ -349,10 +349,10 @@ ROUTINE ======================== main.makeMap1 in D:\www\Snail\Go涓撻绯诲
 
 1. 在执行该命令后，能够很快地拉取到结果，因为它不像CPU Profiling那样需要做采样等待。
 2. 它还有j几个个参数选项，默认选项是`inuse_space`
-   1. inuse_space：未释放空间数。
-   2. alloc_space : 所有分配空间数
-   3. inuse_objects : 未释放对象数
-   4. alloc_objects：所有分配对象数。
+   1. inuse_space：收集实时的正在使用的分配空间数。
+   2. alloc_space : 收集自程序启动以来，累计的分配空间数。
+   3. inuse_objects : 收集实时的正在使用的分配对象数。
+   4. alloc_objects：收集自程序启动以来，累计的分配对象数。
 
 ```
 // 结果:
