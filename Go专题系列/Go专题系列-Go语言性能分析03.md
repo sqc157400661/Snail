@@ -34,11 +34,25 @@
 
 
 
-3、捕获可疑点
+#### 3、捕获可疑点
 
 ![pprof_gongneng](images/pprof-ep1-02.png)
 
 
+
+view选择Graph不变，SAMPLE里选择samples，查看采样信息
+
+![pprof_gongneng](images/pprof-ep1-03.png)
+
+
+
+#### 4、再看flame图
+
+![pprof_gongneng](images/pprof-ep1-04.png)
+
+![pprof_gongneng](images/pprof-ep1-05.png)
+
+我们可以看到其实采样`SAMPLE`中选择`cpu`或者`samples`都差不多，消耗越大的地方`CPU`占用越高，采样点也是越集中在这里！
 
 
 
