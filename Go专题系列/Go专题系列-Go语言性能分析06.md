@@ -70,3 +70,51 @@ func sayHello(s chan string){
 9. Minimum mutator utilization：最低 mutator 利用率。
 
 ## trace分析说明
+
+### 1、调度延迟概述
+
+在查看问题时，除非有很明显的迹象，否则不应该一开始就陷入细节。一般来说，应先查看`Scheduler latency profile`，即通过Graph查看整体的调用开销情况，如下图所示。
+
+![pprof_gongneng](images/trace-02.png)
+
+
+
+### 2、goroutine分析
+
+通过`Goroutine analysis`这个功能我们可以看到在整个运行过程中，每个函数块有多少个goroutine在执行，并且每个Goroutine的运行开销都花费在哪个阶段，
+
+![pprof_gongneng](images/trace-03.png)
+
+可以看到，共有4个goroutine，分别是`runtime.main`、`runtime/trace.Start.func1`、`main.main.func1`和`main.sayHello`。它们都做了哪些事情呢？
+
+下面单击具体项来查看，如下图所示。可
+
+![pprof_gongneng](images/trace-04.png)
+
+参数说明：
+
+
+
+| 名称 | 含义 | 耗时 |
+| ---- | ---- | ---- |
+|      |      |      |
+|      |      |      |
+|      |      |      |
+|      |      |      |
+|      |      |      |
+|      |      |      |
+
+可以看到当前goroutine在整个调用耗时中的占比，以及GC清扫和GC暂停等待的一些开销。另外，还可以把图表下载下来，再进行分析，这相当于把整个goroutine运行时给拆分了，这可以很好地帮助我们对goroutine运行阶段做一个细致的剖析，进而知道到底哪里出了问题，然后再决定下一步的排查方向
+
+
+
+
+
+
+
+参考：
+
+1. https://blog.csdn.net/qiya2007/article/details/109588676
+2. https://www.cnblogs.com/-lee/p/12718025.html
+3. https://studygolang.com/articles/9693
+4. https://mp.weixin.qq.com/s?__biz=MzAxMTA4Njc0OQ==&mid=2651439006&idx=1&sn=0db8849336cc4172c663a574212ea8db&chksm=80bb616cb7cce87a1dc529e6c8bdcf770e293fc4ce67ede8e1908199480534c39f79803038e3&scene=21#wechat_redirect
