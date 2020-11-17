@@ -146,7 +146,7 @@ func sayHello(s chan string){
 9.  Following events：之后的事件（这个协程相关的之后所有的事件）。
 10.  All connected：所有连接的事件（这个协程相关的所有事件）。
 
-
+## 
 
 ### 4、查看事件
 
@@ -156,4 +156,11 @@ func sayHello(s chan string){
 
 
 
+## 小结
 
+本节我们学习了go tool trace的相关内容，它能够跟踪、捕获各种执行中的事件。例如，goroutine的创建、阻塞、解除阻塞，Syscall的进入、退出、阻止，GC事件，调整Heap的大小，以及Processor启动、停止等。
+
+参考：
+
+1. https://blog.csdn.net/qiya2007/article/details/109588676
+2. https://www.cnblogs.com/-lee/p/12718025.html
