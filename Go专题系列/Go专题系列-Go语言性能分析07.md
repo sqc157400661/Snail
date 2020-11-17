@@ -35,6 +35,119 @@ Go Scheduler的主要功能是对在处理器上运行的OS线程分发可运行
 
 ## 开始GODEBUG
 
+GODEBUG可以控制运行时的调试变量，参数之间以逗号分隔，格式为name=val。在调度器观察上会使用如下两个参数：·
+
+- `schedtrace`：设置`schedtrace=X`，可以在运行时每X毫秒发出一行调度器的摘要信息到标准err输出中。
+- `scheddetail`：设置`schedtrace=X`和`scheddetail=1`，可以在运行时每X毫秒发出一次详细的多行信息，信息内容包括调度程序、处理器、OS线程和goroutine的状态。
+
+### 示例：
+
+下面创建一个main.go文件，写入示例代码：
+
+```
+package main
+
+import (
+	"fmt"
+	"os"
+	"runtime"
+	"runtime/trace"
+	"sync"
+)
+
+func calcSum(w *sync.WaitGroup, idx int) {
+	defer w.Done()
+	var sum, n int64
+	for ; n < 1000000000; n++ {
+		sum += n
+	}
+	fmt.Println(idx, sum)
+}
+
+func main() {
+	runtime.GOMAXPROCS(1)
+
+	f, _ := os.Create("trace.output")
+	defer f.Close()
+
+	_ = trace.Start(f)
+	defer trace.Stop()
+
+	var wg sync.WaitGroup
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go calcSum(&wg, i)
+	}
+	wg.Wait()
+}
+```
+
+#### 使用schedtrace
+
+```
+GODEBUG=schedtrace=1000 go run demo.go
+
+SCHED 0ms: gomaxprocs=2 idleprocs=0 threads=4 spinningthreads=1 idlethreads=0 runqueue=0 [0 0]
+# command-line-arguments
+SCHED 0ms: gomaxprocs=2 idleprocs=0 threads=5 spinningthreads=0 idlethreads=1 runqueue=0 [0 0]
+# command-line-arguments
+SCHED 0ms: gomaxprocs=2 idleprocs=1 threads=5 spinningthreads=0 idlethreads=1 runqueue=0 [0 0]
+SCHED 0ms: gomaxprocs=2 idleprocs=0 threads=4 spinningthreads=1 idlethreads=0 runqueue=0 [0 0]
+SCHED 1013ms: gomaxprocs=2 idleprocs=2 threads=8 spinningthreads=0 idlethreads=4 runqueue=0 [0 0]
+SCHED 1029ms: gomaxprocs=2 idleprocs=0 threads=5 spinningthreads=0 idlethreads=1 runqueue=0 [5 4]
+SCHED 2025ms: gomaxprocs=2 idleprocs=2 threads=8 spinningthreads=0 idlethreads=4 runqueue=0 [0 0]
+SCHED 2043ms: gomaxprocs=2 idleprocs=0 threads=5 spinningthreads=0 idlethreads=1 runqueue=3 [3 2]
+SCHED 3038ms: gomaxprocs=2 idleprocs=2 threads=8 spinningthreads=0 idlethreads=4 runqueue=0 [0 0]
+SCHED 3048ms: gomaxprocs=2 idleprocs=0 threads=5 spinningthreads=0 idlethreads=1 runqueue=4 [3 1]
+SCHED 4054ms: gomaxprocs=2 idleprocs=2 threads=8 spinningthreads=0 idlethreads=4 runqueue=0 [0 0]
+SCHED 4053ms: gomaxprocs=2 idleprocs=0 threads=5 spinningthreads=0 idlethreads=1 runqueue=6 [2 0]
+SCHED 5089ms: gomaxprocs=2 idleprocs=2 threads=8 spinningthreads=0 idlethreads=4 runqueue=0 [0 0]
+。。。。。。
+SCHED 5056ms: gomaxprocs=2 idleprocs=0 threads=5 spinningthreads=0 idlethreads=1 runqueue=0 [0 0]
+。。。。。。。
+
+```
+
+- sched：每一行都代表调度器的调试信息，后面提示的毫秒数表示从启动到现在的运行时间，输出的时间间隔受schedtrace值的影响。
+- gomaxprocs：当前的CPU核心数（GOMAXPROCS的当前值）。
+- idleprocs：空闲的处理器数量，后面的数字表示当前的空闲数量。
+- threads：OS线程数量，后面的数字表示当前正在运行的线程数量。
+- spinningthreads：自旋状态的OS线程数量。
+- idlethreads：空闲的线程数量。
+- runqueue：全局队列中的goroutine数量，后面的[0 0 ]分别代表这2个P的本地队列正在运行的goroutine数量。
+
+下面讲解“自旋线程”这个概念，在Head First of Golang Scheduler中，对“自旋线程”的说明如下：Go Scheduler 的设计者在考虑了“OS的资源利用率”和“频繁的线程抢占给 OS 带来的负载”之后，提出了“Spinning Thread”（自旋线程）这个概念。也就是说，当“自旋线程”没有找到可供其调度执行的 goroutine 时，并不会销毁该线程，而是采取“自旋”的操作保存了下来。虽然看起来浪费了一些资源，但是考虑一下 syscall 的情景就可以知道，比起“自旋”操作，线程间频繁的抢占、创建和销毁操作带来的危害更大。
+
+#### 使用scheddetail
+
+如果想要看到调度器的完整信息，则可以增加scheddetail参数，这样即可更进一步地查看调度的细节逻辑，代码如下：
+
+```
+$ GODEBUG=scheddetail=1,schedtrace=1000 go run demo.go
+SCHED 0ms: gomaxprocs=2 idleprocs=0 threads=5 spinningthreads=0 idlethreads=1 runqueue=0 gcwaiting=0 nmidlelocked=0 stopwait=0 sysmonwait=0
+  P0: status=0 schedtick=0 syscalltick=0 m=-1 runqsize=0 gfreecnt=0
+  P1: status=0 schedtick=3 syscalltick=0 m=-1 runqsize=0 gfreecnt=0
+  M4: p=-1 curg=-1 mallocing=0 throwing=0 preemptoff= locks=0 dying=0 spinning=false blocked=false lockedg=-1
+  M3: p=-1 curg=-1 mallocing=0 throwing=0 preemptoff= locks=0 dying=0 spinning=false blocked=true lockedg=-1
+  M2: p=-1 curg=-1 mallocing=0 throwing=0 preemptoff= locks=1 dying=0 spinning=false blocked=false lockedg=-1
+  M1: p=-1 curg=17 mallocing=0 throwing=0 preemptoff= locks=0 dying=0 spinning=false blocked=false lockedg=17
+  M0: p=-1 curg=-1 mallocing=0 throwing=0 preemptoff= locks=1 dying=0 spinning=false blocked=false lockedg=1
+  G1: status=4(chan receive) m=-1 lockedm=0
+  G17: status=6() m=1 lockedm=1
+  G2: status=4(force gc (idle)) m=-1 lockedm=-1
+  G3: status=4(GC sweep wait) m=-1 lockedm=-1
+  G4: status=1() m=-1 lockedm=-1
+..........
+```
+
+这里抽取了1000ms时的调试信息，信息量比较大，涉及核心的GMP，下面先从每一个字段开始了解。
+
+##### （1）G.
+
+status：G的运行状态。· m：隶属哪一个M。· lockedm：是否有锁定M。G的运行状态共有9种，对于分析内部流转非常有帮助，如表6-2所示。
+
+
+
 
 
 ## 参考：
