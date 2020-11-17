@@ -108,23 +108,21 @@ scvg: 0 MB released
 ............
 ```
 
-### 格式
+可以看到其输出内容在关键字上都是类似的，模板内容如下：
 
 ```javascript
 gc # @#s #%: #+#+# ms clock, #+#/#/#+# ms cpu, #->#-># MB, # MB goal, # P
 ```
 
-### 含义
-
 - `gc#`：GC 执行次数的编号，每次叠加。
 - `@#s`：自程序启动后到当前的具体秒数。
 - `#%`：自程序启动以来在GC中花费的时间百分比。
 - `#+...+#`：GC 的标记工作共使用的 CPU 时间占总 CPU 时间的百分比。
-- `#->#-># MB`：分别表示 GC 启动时, GC 结束时, GC 活动时的堆大小.
+- `#->#-># MB`：分别表示 GC 标记启动时, GC标记结束时, GC 活动时的堆大小.
 - `#MB goal`：下一次触发 GC 的内存占用阈值。
 - `#P`：当前使用的处理器 P 的数量。
 
-### 案例
+案例分析:
 
 ```javascript
 gc 7 @0.140s 1%: 0.031+2.0+0.042 ms clock, 0.12+0.43/1.8/0.049+0.17 ms cpu, 4->4->1 MB, 5 MB goal, 4 P
@@ -134,20 +132,49 @@ gc 7 @0.140s 1%: 0.031+2.0+0.042 ms clock, 0.12+0.43/1.8/0.049+0.17 ms cpu, 4->4
 - @0.140s：当前是程序启动后的 0.140s。
 - 1%：程序启动后到现在共花费 1% 的时间在 GC 上。
 - 0.031+2.0+0.042 ms clock：
-- 0.031：表示单个 P 在 mark 阶段的 STW 时间。
-- 2.0：表示所有 P 的 mark concurrent（并发标记）所使用的时间。
-- 0.042：表示单个 P 的 markTermination 阶段的 STW 时间。
+  - 0.031：表示单个 P 在 mark 阶段的 STW 时间。
+  - 2.0：表示所有 P 的 mark concurrent（并发标记）所使用的时间。
+  - 0.042：表示单个 P 的 markTermination 阶段的 STW 时间。
 - 0.12+0.43/1.8/0.049+0.17 ms cpu：
-- 0.12：表示整个进程在 mark 阶段 STW 停顿的时间。
-- 0.43/1.8/0.049：0.43 表示 mutator assist 占用的时间，1.8 表示 dedicated + fractional 占用的时间，0.049 表示 idle 占用的时间。
-- 0.17ms：0.17 表示整个进程在 markTermination 阶段 STW 时间。
+  - 0.12：表示整个进程在 mark 阶段 STW 停顿的时间。
+  - 0.43/1.8/0.049：0.43 表示 mutator assist 占用的时间，1.8 表示 dedicated + fractional 占用的时间，0.049 表示 idle 占用的时间。
+  - 0.17ms：0.17 表示整个进程在 markTermination 阶段 STW 时间。
 - 4->4->1 MB：
-- 4：表示开始 mark 阶段前的 heap_live 大小。
-- 4：表示开始 markTermination 阶段前的 heap_live 大小。
-- 1：表示被标记对象的大小。
+  - 4：表示开始 mark 阶段前的 heap_live 大小。
+  - 4：表示开始 markTermination 阶段前的 heap_live 大小。
+  - 1：表示被标记对象的大小。
 - 5 MB goal：表示下一次触发 GC 回收的阈值是 5 MB。
 - 4 P：本次 GC 一共涉及多少个 P。
 
+#### （2）Scavenging（清除）信息：
+
+```
+$ GODEBUG=gctrace=1 go run demo1.go
+.................
+scvg: 0 MB released
+scvg: inuse: 4, idle: 3, sys: 7, released: 3, consumed: 4 (MB)
+scvg: inuse: 4, idle: 3, sys: 7, released: 3, consumed: 4 (MB)
+scvg: 0 MB released
+scvg: inuse: 4, idle: 3, sys: 7, released: 3, consumed: 4 (MB)
+scvg: inuse: 4, idle: 3, sys: 7, released: 3, consumed: 4 (MB)
+scvg: inuse: 4, idle: 3, sys: 7, released: 3, consumed: 4 (MB)
+scvg: inuse: 4, idle: 3, sys: 7, released: 3, consumed: 4 (MB)
+...................
+```
+
+上述输出内容一共分为两部分，一个是摘要信息，另一个是清除的调试信息。摘要信息的模板内容如下：
+
+```
+scvg: inuse: #, idle: #, sys: #, released: #, consumed: # (MB)
+```
+
+- scvg＃：Scavenging 执行次数的编号，每次在清除时递增。
+- inuse：＃：正在占用的内存大小，单位为MB。
+- idle：＃：等待被清理的内存大小。
+- sys：＃：从系统映射的内存大小。
+- released：＃：已经释放的系统内存大小。
+- consumed：＃：已经从系统申请分配的内存大小。
+
 ## 总结
 
-通过本章节我们掌握了使用 GODEBUG 查看应用程序 GC 运行情况的方法，只要用这种方法我们就可以观测不同情况下 GC 的情况了，甚至可以做出非常直观的对比图，大家不妨尝试一下。
+本节我们学习了用GODEBUG查看应用程序垃圾回收（GC）和清除（Scavenging）信息的运行情况，甚至可以做出非常直观的对比图，帮助我们排查GC问题
