@@ -242,8 +242,6 @@ waitReasonGCWorkerIdle                            *// "GC worker (idle)*
 
 
 
-
-
 ## 参考：
 
 1. [Debugging performance issues in Go programs](https://software.intel.com/en-us/blogs/2014/05/10/debugging-performance-issues-in-go-programs)
