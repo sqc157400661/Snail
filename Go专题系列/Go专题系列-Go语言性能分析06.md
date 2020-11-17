@@ -113,9 +113,9 @@ func sayHello(s chan string){
 
 在初步了解了当前程序的goroutine运行分布情况后，再通过“查看跟踪”看看它们之间的关联性。
 
-图片：
+图片（来自网上）：
 
-
+![pprof_gongneng](images/trace-05.jpg)
 
 下面根据注解一起查看这个跟踪图，具体如下。
 
@@ -148,13 +148,12 @@ func sayHello(s chan string){
 
 
 
+### 4、查看事件
+
+可以通过单击Following events等，查看应用运行中的事件流情况，如下图：
 
 
 
 
-参考：
 
-1. https://blog.csdn.net/qiya2007/article/details/109588676
-2. https://www.cnblogs.com/-lee/p/12718025.html
-3. https://studygolang.com/articles/9693
-4. https://mp.weixin.qq.com/s?__biz=MzAxMTA4Njc0OQ==&mid=2651439006&idx=1&sn=0db8849336cc4172c663a574212ea8db&chksm=80bb616cb7cce87a1dc529e6c8bdcf770e293fc4ce67ede8e1908199480534c39f79803038e3&scene=21#wechat_redirect
+
