@@ -1,6 +1,6 @@
 # 用GODEBUG看GC
 
-## GC基础知识
+## 一、GC基础知识
 
 ### 什么是 GC
 
@@ -8,7 +8,7 @@
 
 ### 为什么要 GC
 
-手动管理内存挺麻烦，管错或者管漏内存也很糟糕，将会直接导致程序不稳定（持续泄露）甚至直接崩溃。
+手动管理内存非常麻烦，如果管错或者管漏内存，将会直接导致程序不稳定（持续泄露），甚至立刻崩溃。
 
 ### GC 带来的问题
 
@@ -26,6 +26,15 @@
 
 简单来讲就是，GOGC 的值设置的越大，GC 的频率越低，但每次最终所触发到 GC 的堆内存也会更大。
 
+在程序运行时，可以通过调用下述方法来动态调整GOGC的值：
+
+```
+// runtime/debug
+debug.SetGCPercent
+```
+
+
+
 ### 各版本 GC 情况
 
 | 版本    | GC 算法                                                      | STW 时间               |
@@ -40,7 +49,11 @@
 
 注：资料来源于 @boya 在深圳 Gopher Meetup 的分享。
 
-### GODEBUG
+### 主动触发 GC
+
+在 Go 语言中，与 GC 相关的 API 极少，如果想要主动触发 GC 行为，则可以通过调用`runtime.GC `方法来达到这个目的。与之相配套的内存相关的归还，也可以通过手动调用`debug.FreeOSMemory`方法来实现。
+
+## 二、GODEBUG
 
 GODEBUG 变量可以控制运行时内的调试变量，参数以逗号分隔，格式为：`name=val`。本文着重点在 GC 的观察上，主要涉及 gctrace 参数，我们通过设置 `gctrace=1` 后就可以使得垃圾收集器向标准错误流发出 GC 运行信息。
 
@@ -52,16 +65,47 @@ GODEBUG 变量可以控制运行时内的调试变量，参数以逗号分隔，
 - heaplive：在 Go 的内存管理中，span 是内存页的基本单元，每页大小为 8kb，同时 Go 会根据对象的大小不同而分配不同页数的 span，而 heaplive 就代表着所有 span 的总大小。
 - dedicated / fractional / idle：在标记阶段会分为三种不同的 mark worker 模式，分别是 dedicated、fractional 和 idle，它们代表着不同的专注程度，其中 dedicated 模式最专注，是完整的 GC 回收行为，fractional 只会干部分的 GC 行为，idle 最轻松。这里你只需要了解它是不同专注程度的 mark worker 就好了，详细介绍我们可以等后续的文章。
 
-### 演示代码
+### 示例代码
+
+创建一个demo.go文件，写入如下代码：
 
 ```javascript
-func main() {	    wg := sync.WaitGroup{}	    wg.Add(10)	    for i := 0; i < 10; i++ {	        go func(wg *sync.WaitGroup) {	            var counter int	            for i := 0; i < 1e10; i++ {	                counter++	            }	            wg.Done()	        }(&wg)	    }	    wg.Wait()	}
+package main
+
+import "sync"
+
+func main() {
+	wg := sync.WaitGroup{}
+	wg.Add(10)
+	for i := 0; i < 10; i++ {
+		go func(wg *sync.WaitGroup) {
+			var counter int
+			for i := 0; i < 1e10; i++ {
+				counter++
+			}
+			wg.Done()
+		}(&wg)
+	}
+	wg.Wait()
+}
 ```
 
 ### gctrace
 
+在命令行设置 `GODEBUG=gctrace=1` 来运行 demo.go 文件，为了便于展示和说明，这里把gctrace的输出结果拆成两部分，分别是GC信息和Scavenging信息。
+
+#### （1）GC信息：
+
 ```javascript
-$ GODEBUG=gctrace=1 go run main.go	gc 1 @0.032s 0%: 0.019+0.45+0.003 ms clock, 0.076+0.22/0.40/0.80+0.012 ms cpu, 4->4->0 MB, 5 MB goal, 4 P	gc 2 @0.046s 0%: 0.004+0.40+0.008 ms clock, 0.017+0.32/0.25/0.81+0.034 ms cpu, 4->4->0 MB, 5 MB goal, 4 P	gc 3 @0.063s 0%: 0.004+0.40+0.008 ms clock, 0.018+0.056/0.32/0.64+0.033 ms cpu, 4->4->0 MB, 5 MB goal, 4 P	gc 4 @0.080s 0%: 0.004+0.45+0.016 ms clock, 0.018+0.15/0.34/0.77+0.065 ms cpu, 4->4->1 MB, 5 MB goal, 4 P	gc 5 @0.095s 0%: 0.015+0.87+0.005 ms clock, 0.061+0.27/0.74/1.8+0.023 ms cpu, 4->4->1 MB, 5 MB goal, 4 P	gc 6 @0.113s 0%: 0.014+0.69+0.002 ms clock, 0.056+0.23/0.48/1.4+0.011 ms cpu, 4->4->1 MB, 5 MB goal, 4 P	gc 7 @0.140s 1%: 0.031+2.0+0.042 ms clock, 0.12+0.43/1.8/0.049+0.17 ms cpu, 4->4->1 MB, 5 MB goal, 4 P	...
+$ GODEBUG=gctrace=1 go run demo1.go
+gc 1 @0.361s 3%: 0+28+0 ms clock, 0+28/0/28+0 ms cpu, 4->4->0 MB, 5 MB goal, 2 P
+gc 2 @0.587s 2%: 0+3.0+0 ms clock, 0+0/0/3.0+0 ms cpu, 4->4->0 MB, 5 MB goal, 2 P
+gc 3 @0.792s 1%: 0+1.0+0 ms clock, 0+1.0/0/1.0+0 ms cpu, 4->4->0 MB, 5 MB goal, 2 P
+scvg: 0 MB released
+scvg: inuse: 1, idle: 6, sys: 7, released: 3, consumed: 4 (MB)
+scvg: inuse: 1, idle: 6, sys: 7, released: 3, consumed: 4 (MB)
+scvg: 0 MB released
+............
 ```
 
 ### 格式
