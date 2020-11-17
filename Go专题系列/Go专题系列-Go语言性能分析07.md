@@ -144,7 +144,101 @@ SCHED 0ms: gomaxprocs=2 idleprocs=0 threads=5 spinningthreads=0 idlethreads=1 ru
 
 ##### （1）G.
 
-status：G的运行状态。· m：隶属哪一个M。· lockedm：是否有锁定M。G的运行状态共有9种，对于分析内部流转非常有帮助，如表6-2所示。
+- status：G的运行状态。
+- m：隶属哪一个M。
+- lockedm：是否有锁定M。
+
+**G的运行状态共有9种**，对于分析内部流转非常有帮助，如下表所示。
+
+| 状态              | 指示 | 含义                                                         |
+| ----------------- | ---- | ------------------------------------------------------------ |
+| _Gidle            | 0    | 刚刚被分配，还没有进行的初始化                               |
+| _Grunnable        | 1    | 已经在运行队列中，还没有执行用户代码                         |
+| _Grunning         | 2    | 不在运行队列中，已经可以执行用户代码，此时已经分配了M和P     |
+| _Gsyscall         | 3    | 正在执行系统调用，此时分配了M                                |
+| _Gwaiting         | 4    | 在运行时被阻止，没有执行用户代码，也不再运行队列中，此时在正在某处阻塞等待中 |
+| _Gmoribund_unused | 5    | 尚未使用，但是在gbd中进行了硬编码                            |
+| _Gdead            | 6    | 尚未使用，这个状态可能是刚退出或者刚被初始化，此时它并没有执行用户代码，也有可能是没有分配堆栈 |
+| _Genqueue_unused  | 7    | 尚未使用                                                     |
+| _Gcopystack       | 8    | 正在复制堆栈，并没有执行用户代码，也不在运行队列中           |
+
+在了解了各类状态的含义后，再来看看下面这部分代码：
+
+```
+G1: status=4(semacquire) m=-1 lockedm=-1
+G2: status=4(force gc (idle)) m=-1 lockedm=-1
+G3: status=4(GC sweep wait) m=-1 lockedm=-1
+G17: status=1() m=-1 lockedm=-1
+G18: status=2() m=4 lockedm=-1
+```
+
+在这段代码中，G1的运行状态为Gwaiting，并没有分配M和锁定。括号中的semacquire是什么含义呢？因为 status=4 表示的是 goroutine 在运行时时被阻止，而阻止它的事件正是semacquire事件。semacquire会检查信号量的情况，在合适的时机调用goparkunlock函数，把当前的goroutine放进等待队列，并把它设为Gwaiting状态。在实际运行中还有什么原因会导致这种现象呢？具体如下：
+
+
+
+那么在实际运行中还有什么原因会导致这种现象呢，我们一起看看，如下
+
+```
+waitReasonZero                                    *// ""*
+waitReasonGCAssistMarking                         *// "GC assist marking"*
+waitReasonIOWait                                  *// "IO wait"*
+waitReasonChanReceiveNilChan                      *// "chan receive (nil chan)"*
+waitReasonChanSendNilChan                         *// "chan send (nil chan)"*
+waitReasonDumpingHeap                             *// "dumping heap"*
+waitReasonGarbageCollection                       *// "garbage collection"*
+waitReasonGarbageCollectionScan                   *// "garbage collection scan"*
+waitReasonPanicWait                               *// "panicwait"*
+waitReasonSelect                                  *// "select"*
+waitReasonSelectNoCases                           *// "select (no cases)"*
+waitReasonGCAssistWait                            *// "GC assist wait"*
+waitReasonGCSweepWait                             *// "GC sweep wait"*
+waitReasonChanReceive                             *// "chan receive"*
+waitReasonChanSend                                *// "chan send"*
+waitReasonFinalizerWait                           *// "finalizer wait"*
+waitReasonForceGGIdle                             *// "force gc (idle)"*
+waitReasonSemacquire                              *// "semacquire"*
+waitReasonSleep                                   *// "sleep"
+waitReasonSyncCondWait                            *// "sync.Cond.Wait"*
+waitReasonTimerGoroutineIdle                      *// "timer goroutine (idle)"*
+waitReasonTraceReaderBlocked                      *// "trace reader (blocked)"*
+waitReasonWaitForGCCycle                          *// "wait for GC cycle"*
+waitReasonGCWorkerIdle                            *// "GC worker (idle)*
+```
+
+我们通过以上 `waitReason` 可以了解到 `Goroutine` 会被暂停运行的原因要素，也就是会出现在括号中的事件。
+
+##### （2）M
+
+- p：隶属哪一个 P。
+- curg：当前正在使用哪个 G。
+- runqsize：运行队列中的 G 数量。
+- gfreecnt：可用的G（状态为 Gdead）。
+- mallocing：是否正在分配内存。
+- throwing：是否抛出异常。
+- preemptoff：不等于空字符串的话，保持 curg 在这个 m 上运行。
+
+##### （3）P
+
+- status：P 的运行状态。
+- schedtick：P 的调度次数。
+- syscalltick：P 的系统调用次数。
+- m：隶属哪一个 M。
+- runqsize：运行队列中的 G 数量。
+- gfreecnt：可用的G（状态为 Gdead）。
+
+| 状态      | 值   | 含义                                                         |
+| :-------- | :--- | :----------------------------------------------------------- |
+| _Pidle    | 0    | 刚刚被分配，还没有进行进行初始化。                           |
+| _Prunning | 1    | 当 M 与 P 绑定调用 acquirep 时，P 的状态会改变为 _Prunning。 |
+| _Psyscall | 2    | 正在执行系统调用。                                           |
+| _Pgcstop  | 3    | 暂停运行，此时系统正在进行 GC，直至 GC 结束后才会转变到下一个状态阶段。 |
+| _Pdead    | 4    | 废弃，不再使用。                                             |
+
+### 小小结
+
+本节我们学习了调度的一些基础知识，并通过GODEBUG工具掌握了观察调度器的方法。通常我们会把GODEBUG和go tool trace工具结合使用，在实际使用中，类似的方法还有很多，组合巧用是重点。
+
+
 
 
 
@@ -152,4 +246,12 @@ status：G的运行状态。· m：隶属哪一个M。· lockedm：是否有锁�
 
 ## 参考：
 
-1. GODEBUG
+1. [Debugging performance issues in Go programs](https://software.intel.com/en-us/blogs/2014/05/10/debugging-performance-issues-in-go-programs)
+*   [A whirlwind tour of Go’s runtime environment variables](https://dave.cheney.net/tag/godebug)
+*   [Go调度器系列（2）宏观看调度器](https://mp.weixin.qq.com/s?__biz=Mzg3MTA0NDQ1OQ==&amp;mid=2247483907&amp;idx=2&amp;sn=c955372683bc0078e14227702ab0a35e&amp;chksm=ce85c607f9f24f116158043f63f7ca11dc88cd519393ba182261f0d7fc328c7b6a94fef4e416&amp;scene=38#wechat_redirect)
+*   [Go's work-stealing scheduler](https://rakyll.org/scheduler/)
+*   [Scheduler Tracing In Go](https://www.ardanlabs.com/blog/2015/02/scheduler-tracing-in-go.html)
+*   [Head First of Golang Scheduler](https://zhuanlan.zhihu.com/p/42057783)
+*   [goroutine 的状态切换](http://xargin.com/state-of-goroutine/)
+*   [Environment_Variables](https://golang.org/pkg/runtime/#hdr-Environment_Variables)
+
