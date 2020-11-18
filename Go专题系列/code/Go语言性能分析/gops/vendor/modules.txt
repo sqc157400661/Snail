@@ -1,0 +1,4 @@
+# github.com/google/gops v0.3.13
+github.com/google/gops/agent
+github.com/google/gops/internal
+github.com/google/gops/signal
