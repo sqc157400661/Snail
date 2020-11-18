@@ -87,14 +87,74 @@ PID，PPID，程序名称，编译使用的 Go 版本号，程序路径
 ```
 
 - 在上述输出中，第3行的输出结果中包含了一个`*`符号，这代表着该Go进程包含了agent，因此它可以启用更强大的诊断功能，包括当前堆栈跟踪、Go版本、内存统计信息，等等。
-- 不包含*符号，这意味着它是一个普通的Go程序，即没有植入agent，只能使用最基本的功能。
+- 不包含*符号，这意味着它是一个普通的Go程序，即没有植入agent，只能使用最基本的功能，也就是说无法执行`gops memstats`、`gops pprof-heap`等所有类似于 `gops <cmd> <pid|addr> ...` 的子命令。
 
+ps:`agent.Options` 参数说明：
 
+```
+// Code reference: github.com/google/gops/agent/agent.go:42
 
+// Options allows configuring the started agent.
+type Options struct {
+	// Addr is the host:port the agent will be listening at.
+	// Optional.
+	Addr string
 
+	// ConfigDir is the directory to store the configuration file,
+	// PID of the gops process, filename, port as well as content.
+	// Optional.
+	ConfigDir string
+
+	// ShutdownCleanup automatically cleans up resources if the
+	// running process receives an interrupt. Otherwise, users
+	// can call Close before shutting down.
+	// Optional.
+	ShutdownCleanup bool
+}
+```
+
+- Addr
+
+  可选。为远程分析服务提供监听地址，例如: `:9119`。配置了该项，那我们可以在本机查看分析远程服务器上的 Go 程序，非常有帮助。
+
+- ConfigDir
+
+  可选。用于存放统计数据（go进程信息）和配置的目录，默认为当前用户的主目录。也可以通过环境变量`GOPS_CONFIG_DIR`设置。具体参考代码：
+
+  ```
+  const gopsConfigDirEnvKey = "GOPS_CONFIG_DIR"
+  
+  func ConfigDir() (string, error) {
+  	if configDir := os.Getenv(gopsConfigDirEnvKey); configDir != "" {
+  		return configDir, nil
+  	}
+  
+  	if runtime.GOOS == "windows" {
+  		return filepath.Join(os.Getenv("APPDATA"), "gops"), nil
+  	}
+  	homeDir := guessUnixHomeDir()
+  	if homeDir == "" {
+  		return "", errors.New("unable to get current user home directory: os/user lookup failed; $HOME is empty")
+  	}
+  	return filepath.Join(homeDir, ".config", "gops"), nil
+  }
+  
+  func guessUnixHomeDir() string {
+  	usr, err := user.Current()
+  	if err == nil {
+  		return usr.HomeDir
+  	}
+  	return os.Getenv("HOME")
+  }
+  ```
+
+- ShutdownCleanup
+
+  可选。设置为 `true`，则在程序关闭时会自动清理数据（ConfigDir中的文件）。
 
 
 
 ## 参考
 
 1. https://github.com/google/gops
+2. [google/gops源码分析](https://github.com/XanthusL/blog-gen/blob/master/content/post/gops.md)
