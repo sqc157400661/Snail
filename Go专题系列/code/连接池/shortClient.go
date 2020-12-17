@@ -14,10 +14,10 @@ var httpClient = &http.Client{
 			Timeout:   1000 * time.Millisecond,
 			KeepAlive: 5000 * time.Second,
 		}).DialContext,
-		MaxIdleConns:        100,
-		MaxIdleConnsPerHost: 100,
-		IdleConnTimeout:     2 * time.Second,
-		DisableKeepAlives:false,
+		// MaxIdleConns:        100,
+		// MaxIdleConnsPerHost: 100,
+		// IdleConnTimeout:     2 * time.Second,
+		DisableKeepAlives:true,
 	},
 	Timeout: 1000 * time.Millisecond,
 }
@@ -26,8 +26,8 @@ var syncw sync.WaitGroup
 func main() {
 	bT := time.Now()            // 开始时间
 
-	syncw.Add(100000)
-	for i:=0;i<100000;i++{
+	syncw.Add(10000)
+	for i:=0;i<10000;i++{
 		go DoReq()
 		time.Sleep(1 * time.Millisecond)
 	}
@@ -40,7 +40,7 @@ func main() {
 
 func DoReq(){
 	fmt.Println("start")
-	url := "https://api.apiopen.top/getJoke?page=1&count=2&type=video"
+	url := "https://121.41.101.109/index.php"
 	req,_ := http.NewRequest("GET",url,nil)
 	resp,rerr := httpClient.Do(req)
 	if rerr == nil{
