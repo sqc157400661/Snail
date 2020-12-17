@@ -41,3 +41,5 @@
 4. http://mp.weixin.qq.com/mp/homepage?__biz=MzAxMTA4Njc0OQ==&hid=11&sn=ebf226cfb8ac6f5140fe133c0bd80dd1&scene=18#wechat_redirect
 
    
+
+# 聊聊Go内存优化和相关底层机制https://wudaijun.com/2019/09/go-performance-optimization/
