@@ -4,7 +4,59 @@
 
 ## 问题描述
 
+线上在用户访问激增的情况下，出现``read: connection reset by peer``错误
 
+
+
+访问链路如下
+
+![preview](D:\www\Snail\Go实战系列\6666666.jpg)
+
+go client客户端配置：
+
+```
+var httpClient = &http.Client{
+	Transport: &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout:   1000 * time.Millisecond,
+			KeepAlive: 300 * time.Second,
+		}).DialContext,
+		MaxIdleConns:        MaxIdleConns,
+		MaxIdleConnsPerHost: MaxIdleConnsPerHost,
+		IdleConnTimeout:     time.Duration(IdleConnTimeout) * time.Second,
+	},
+	Timeout: 1000 * time.Millisecond,
+}
+```
+
+- 重点讲下`transport.IdleConnTimeout`的含义，它的意思是单个长连接，如果`60s`内没有被使用，就不再使用这个长连接发送请求。
+
+Nginx长连接的一些设置参数：
+
+```
+http{
+    upstream backend{
+        keepalive 65;
+        #Nginx 1.15.3之后可以设置，这里是默认配置
+        keepalive_timeout 65s;
+        #Nginx 1.15.3之后可以设置，这里是默认配置
+        keepalive_requests 100;
+        ...
+    }
+    server{
+        keepalive_timeout 65s;
+        keepalive_requests 100;
+        ...
+    }
+}
+
+```
+
+- `server`中的`keepalive_timeout`, 意思是`Nginx`作为服务端，对于客户端的长连接请求，如果20s内，没有收到新的请求，就会关闭这个连接。
+- `server`中的`keepalive_requests`，意思是对于客户端的单个长连接，最多处理`100`个请求，处理完`100`个请求后，就关闭这个连接，不再接收新的请求。
+- `upstream`中的`keepalive`，意思是这个`upstream`最多的空闲长连接数
+- `upstream`中的`keepalive_timeout`，意思是`Nginx`作为客户端，与`upstream`建立长连接后，如果`60s`内没有使用，就关闭这个长连接，不再使用。
+- `upstream`中的`keepalive_requests`，意思是`Nginx`作为客户端，与`upstream`建立的长连接，单个连接最多发送`100`个请求，超过之后，就关闭连接。
 
 
 
@@ -24,7 +76,48 @@
 
 
 
+## 扩展工具
 
+### (1) liunx下建立socket连接
+
+有一个特殊的文件`/dev/tcp`,打开这个文件就类似于发出了一个`socket`调用，建立一个`socket`连接，读写这个文件就相当于在这个`socket`连接中传输数据。
+
+```
+/*
+	指定服务器名为：127.0.0.1,
+	端口号为：80,
+	指定文件描述符为8
+	<> 表示输入 输出
+*/
+exec 8<> /dev/tcp/127.0.0.1/8001
+
+/*
+	1表示标准输出
+	>& 8表示输出重定向到，文件描述符8上（不加& 会认为是简单的输出到文件8）
+	"GET / HTTP/1.0\n" 表示用的什么协议和方法 （应用层协议，如http）
+*/
+echo -e "GET / HTTP/1.0\n" 1>& 8
+ 
+/*
+ 0表示标准输入
+ <& 8表示接受文件描述符8的输入
+*/
+cat 0<& 8
+```
+
+### （2）nestat 命令
+
+```
+netstat -s
+
+netstat -natp 查看socket连接（IP+ 端口映射 每个socket是独立隔离的）
+```
+
+### （3）tcpdump
+
+```
+tcpdump -nn -i eth0 port 8001
+```
 
 
 
