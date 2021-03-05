@@ -60,13 +60,29 @@ http{
 
 
 
-## 分析问题
+## 问题排查
+
+### （1）超时设置
+
+网关`Nginx server`中的`keepalive_timeout`设置的是`65s`，也就是说`Nginx`过了`75s`才关闭这个长连接。这时候就想，应该是因为我们`Golang`服务设置的超时时间是`300s`导致的。当单个长连接超过`65s`没有被使用后，`Golang`服务认为这个长连接还可以使用，但是网关`Nginx`认为已经超时，所以`Golang`服务再次发送请求，`Nginx`会发送`Tcp Reset`包。
+
+将`transport.IdleConnTimeout`设置为`65s`后， 本以为这个问题一定能解决，但是发现还是会出现`connection reset by peer`。
+
+### （2）nginx有woker进程重启
+
+- `Nginx`在worker等意外死掉，然后创建新的`Worker`进程之后，我们`Golang`服务是与`Nginx`老的`Worker`建立的长连接，当老的`Worker`处理完一个请求后，发送结果给`Golang`服务，`Golang`服务收到结果之后，可能会继续发送请求，但是这个时候，`Nginx`老的`Worker`可能已经关闭了连接，故而发送`Tcp Reset`包给`Golang`服务。
+
+- 或者老`Nginx Worker`收到请求后，建立了连接，然后死掉了，golang服务还进行数据传输，进而导致服务端`Nginx`发送`Tcp Reset`包给客户端
+
+但是去排查网关nginx进程运行时长，否认该可能性
+
+### （3）TCP相关内核参数
 
 
 
-## 重现问题
+## 问题分析
 
-
+### 
 
 ## 知识点
 
@@ -76,7 +92,7 @@ http{
 
 
 
-## 扩展工具
+## 问题排查辅助工具使用介绍
 
 ### (1) liunx下建立socket连接
 
@@ -118,32 +134,6 @@ netstat -natp 查看socket连接（IP+ 端口映射 每个socket是独立隔离�
 ```
 tcpdump -nn -i eth0 port 8001
 ```
-
-
-
-## 1、先检查go http client 和 服务器keepalive时间
-
-go http client  keepalive =》300s
-
-nginx服务器 =》65s
-
-
-
-做好调整
-
-
-
-## 2、问题再次出现
-
-
-
-
-
-
-
-3、知识点：
-
-
 
 
 
