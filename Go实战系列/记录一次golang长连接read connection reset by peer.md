@@ -60,7 +60,7 @@ http{
 
 
 
-## 问题排查
+## 问题排查过程
 
 ### （1）超时设置
 
@@ -74,21 +74,51 @@ http{
 
 - 或者老`Nginx Worker`收到请求后，建立了连接，然后死掉了，golang服务还进行数据传输，进而导致服务端`Nginx`发送`Tcp Reset`包给客户端
 
-但是去排查网关nginx进程运行时长，否认该可能性
+**但是去排查网关nginx进程运行时长，否认该可能性**
 
-### （3）TCP相关内核参数
+### （3）TCP连接相关内核参数
+
+| 参数                  | 查看方式                                                     | 参数说明                                                     |
+| --------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| tcp_max_syn_backlog   | `cat /proc/sys/net/ipv4/tcp_max_syn_backlog` 或者`sysctl -a | grep tcp_max_syn_backlog` | 默认为1000. 这表示半连接队列的长度，如果超过则放弃当前连接。 |
+| somaxconn             | `cat /proc/sys/net/core/somaxconn` 或者 `sysctl -a | grep somaxconn` | accept queue队列的长度                                       |
+| tcp_abort_on_overflow | `cat /proc/sys/net/ipv4/tcp_abort_on_overflow` 或者`sysctl -a | grep tcp_abort_on_overflow` | 当 tcp 建立连接的 3 路握手完成后，将连接置入 ESTABLISHED 状态并交付给应用程序的 backlog 队列时，会检查 backlog 队列是否已满。若已满，通常行为是将连接还原至 SYN_ACK 状态，以造成 3 路握手最后的 ACK 包意外丢失假象 —— 这样在客户端等待超时后可重发 ACK —— 以再次尝试进入 ESTABLISHED 状态 —— 作为一种修复/重试机制。如果启用 tcp_abort_on_overflow 则在检查到 backlog 队列已满时，直接发 RST 包给客户端终止此连接 —— 此时客户端程序会收到 104 Connection reset by peer 错误。 |
+
+![img](D:\www\Snail\Go实战系列\665551515.jpg)
 
 
+
+注意：
+
+- `SYN queue`长度由`tcp_max_syn_backlog`指定，`accept queue`则由`net.core.somaxconn`决定，`listen(fd, backlog)`的backlog上限由`somaxconn`决定.
+- 在linux 2.2以前，backlog大小包括了半连接状态和全连接状态两种队列大小。linux 2.2以后，分离为两个backlog来分别限制半连接`SYN_RCVD状态的未完成连接队列`大小跟全连接`ESTABLISHED状态的已完成连接队列`大小。
+- 在使用listen函数时，内核会根据传入参数的backlog跟系统配置参数`/proc/sys/net/core/somaxconn`中，二者取最小值，作为“ESTABLISHED状态之后，完成TCP连接，等待服务程序ACCEPT”的队列大小
+- 客户端connect()返回不代表TCP连接建立成功，有可能此时服务器accept queue已满，OS会直接丢弃后续ACK请求；
+
+**观察网关的这些参数配置，发现这些参数都是比较大的，不太可能是这些参数引发的问题**
+
+### （4）nginx的backlog
+
+发现nginx并没有配置该参数，然后用下面命令查看Nginx中的Accept队列参数
+
+```
+ss -lnt
+
+Recv -Q Send -Q Local Address:port Peer Address:Port
+0        511                *: 8080           *:*
+```
+
+- 第二列Recv-Q是，全连接队列接收到达的连接
+- 第三列是Send-Q全连接队列的所能容纳最大值
+- 如果，Recv-Q 大于 Send-Q 那么大于的那部分，是要溢出的即要被丢弃overflow掉的。
+
+**发现nginx的backlog默认是511，太小了，调整到65535后，线上问题得以修复**
 
 ## 问题分析
 
 ### 
 
 ## 知识点
-
-
-
-## 参数调优
 
 
 
@@ -134,6 +164,24 @@ netstat -natp 查看socket连接（IP+ 端口映射 每个socket是独立隔离�
 ```
 tcpdump -nn -i eth0 port 8001
 ```
+
+### （4） ss命令
+
+```
+ss -lnt
+```
+
+
+
+## TCP内核参数调优
+
+
+
+
+
+
+
+
 
 
 
@@ -294,10 +342,6 @@ tcpdump -nn -i eth0 port 8001
 
 
 
-
-
-
-https://www.jianshu.com/p/3ecc99ebf566
 
 https://www.cnblogs.com/alchemystar/p/13175276.html
 
