@@ -21,9 +21,9 @@ var httpClient = &http.Client{
 			Timeout:   1000 * time.Millisecond,
 			KeepAlive: 300 * time.Second,
 		}).DialContext,
-		MaxIdleConns:        MaxIdleConns,
-		MaxIdleConnsPerHost: MaxIdleConnsPerHost,
-		IdleConnTimeout:     time.Duration(IdleConnTimeout) * time.Second,
+		MaxIdleConns:        300,
+		MaxIdleConnsPerHost: 200,
+		IdleConnTimeout:     300 * time.Second,
 	},
 	Timeout: 1000 * time.Millisecond,
 }
@@ -52,7 +52,7 @@ http{
 
 ```
 
-- `server`中的`keepalive_timeout`, 意思是`Nginx`作为服务端，对于客户端的长连接请求，如果20s内，没有收到新的请求，就会关闭这个连接。
+- `server`中的`keepalive_timeout`, 意思是`Nginx`作为服务端，对于客户端的长连接请求，如果65s内，没有收到新的请求，就会关闭这个连接。
 - `server`中的`keepalive_requests`，意思是对于客户端的单个长连接，最多处理`100`个请求，处理完`100`个请求后，就关闭这个连接，不再接收新的请求。
 - `upstream`中的`keepalive`，意思是这个`upstream`最多的空闲长连接数
 - `upstream`中的`keepalive_timeout`，意思是`Nginx`作为客户端，与`upstream`建立长连接后，如果`60s`内没有使用，就关闭这个长连接，不再使用。
@@ -116,7 +116,7 @@ Recv -Q Send -Q Local Address:port Peer Address:Port
 
 ## 问题分析
 
-### 
+
 
 ## 知识点
 
