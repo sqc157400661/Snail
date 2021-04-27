@@ -42,33 +42,33 @@ go tool pprof -http=:8000 profile
 
 **下图展示了函数逻辑调用树，框越红，越大表示消耗越多！**
 
-![pprof_gongneng](images/pprof-ep1-01.png)
+![pprof_gongneng](http://cdn.xiaot123.com/blog/2021-04/pprof-ep1-01.png-blog)
 
 
 
 #### 3、捕获可疑点
 
-![pprof_gongneng](images/pprof-ep1-02.png)
+![pprof_gongneng](http://cdn.xiaot123.com/blog/2021-04/pprof-ep1-02.png-blog)
 
 
 
 view选择Graph不变，SAMPLE里选择samples，查看采样信息
 
-![pprof_gongneng](images/pprof-ep1-03.png)
+![pprof_gongneng](http://cdn.xiaot123.com/blog/2021-04/pprof-ep1-03.png-blog)
 
 
 
 #### 4、再看flame图
 
-![pprof_gongneng](images/pprof-ep1-04.png)
+![pprof_gongneng](http://cdn.xiaot123.com/blog/2021-04/pprof-ep1-04.png-blog)
 
-![pprof_gongneng](images/pprof-ep1-05.png)
+![pprof_gongneng](http://cdn.xiaot123.com/blog/2021-04/pprof-ep1-05.png-blog)
 
 我们可以看到其实采样`SAMPLE`中选择`cpu`或者`samples`都差不多，消耗越大的地方`CPU`占用越高，采样点也是越集中在这里！
 
 #### 5、再看Top
 
-![pprof_gongneng](images/pprof-ep1-06.png)
+![pprof_gongneng](http://cdn.xiaot123.com/blog/2021-04/pprof-ep1-06.png-blog)
 
 Flat：函数自身运行耗时
 
@@ -94,7 +94,7 @@ go tool pprof -http=:8000 profile
 
 
 
-![pprof_gongneng](images/pprof-ep1-07.png)
+![pprof_gongneng](http://cdn.xiaot123.com/blog/2021-04/pprof-ep1-07.png-blog)
 
 - `alloc_objects`：收集自程序启动以来，累计的分配对象数
 -  `alloc_space`：收集自程序启动以来，累计的分配空间

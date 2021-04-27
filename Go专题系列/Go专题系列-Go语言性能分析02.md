@@ -185,7 +185,7 @@ func main() {
 
 首页信息
 
-![pprof_home](images/pprof_home.png)
+![pprof_home](http://cdn.xiaot123.com/blog/2021-04/pprof_home.png-blog)
 
 
 
@@ -344,7 +344,7 @@ ROUTINE ======================== main.makeMap1 in D:\www\Snail\Go涓撻绯诲
 
 - tree 	以树状显示
 
-- png 	以图片格式输出
+- png-blog 	以图片格式输出
 
 - svg 	生成浏览器可以识别的svg文件
 
@@ -604,7 +604,7 @@ windows下安装：
 
 通过PProf提供的可视化界面，我们能够更方便、更直观地看到Go应用程序的调用链和使用情况等。另外，在View菜单栏中，PProf还支持多种分析方式，如图
 
-![pprof_gongneng](images/pprof_gongneng.png)
+![pprof_gongneng](http://cdn.xiaot123.com/blog/2021-04/pprof_gongneng.png-blog)
 
 
 
@@ -620,13 +620,13 @@ windows下安装：
 
 ps：点击栏目可以进行相关的排序
 
-![pprof_gongneng](images/pprof_top.png)
+![pprof_gongneng](http://cdn.xiaot123.com/blog/2021-04/pprof_top.png-blog)
 
 #### Graph视图
 
 视图展示的是整体的函数调用流程，框越大、线越粗、框颜色越鲜艳（红色），代表它占用的时间越久，开销越大。相反，框越小、线越浅、框颜色越淡，则代表在整体的函数调用流程中，它的开销越小。
 
-![pprof_gongneng](images/pprof_Graph.png)
+![pprof_gongneng](http://cdn.xiaot123.com/blog/2021-04/pprof_Graph.png-blog)
 
 因此我们可以用此视图分析谁才是开销大头，它又是因为什么调用流程而被调用的。
 
@@ -637,19 +637,19 @@ ps：点击栏目可以进行相关的排序
 3. y 轴表示调用栈，每一层都是一个函数。调用栈越深，火焰就越高
 4. 每一块代表一个函数、区块越大，代表占用CPU的时间越长。同时它还支持点击块进行深入分析。
 
-![pprof_gongneng](images/pprof_Flame_Graph.png)
+![pprof_gongneng](http://cdn.xiaot123.com/blog/2021-04/pprof_Flame_Graph.png-blog)
 
 #### Peek视图
 
 此视图与Top视图相比，增加了所属上下文信息的展示，即函数的输出调用者和被调用者。
 
-![pprof_gongneng](images/pprof_Peek.png)
+![pprof_gongneng](http://cdn.xiaot123.com/blog/2021-04/pprof_Peek.png-blog)
 
 #### Source视图
 
 该视图主要增加了面向源代码的追踪和分析，可以看到其开销主要消耗在哪里。
 
-![pprof_gongneng](images/pprof_Source.png)
+![pprof_gongneng](http://cdn.xiaot123.com/blog/2021-04/pprof_Source.png-blog)
 
 ### trace分析
 
