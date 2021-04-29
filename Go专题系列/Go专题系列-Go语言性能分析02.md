@@ -704,3 +704,15 @@ go tool pprof -http=:8001 mem.profile
 
 ## 第七节：通过Lookup写入文件做剖析
 
+
+
+
+
+
+
+
+
+https://pdf.us/2019/02/18/2772.html
+
+https://blog.csdn.net/qq_30549833/article/details/89381790
+
