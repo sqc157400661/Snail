@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	_ "net/http/pprof" // 第一步～
 )
@@ -27,10 +26,8 @@ func MakeMap2() map[int]int {
 func test1(w http.ResponseWriter, r *http.Request) {
 	MakeMap1()
 	MakeMap2()
-	var ii interface{}
-	ii = 1
-	ii = "32342"
-	fmt.Println(ii)
+
+	w.Write([]byte("12321312"))
 }
 
 func main() {

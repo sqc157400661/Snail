@@ -40,18 +40,24 @@
 
 1. 性能剖析工具PProf
    	1. 压力测试工具ab
-    	2. PProf简介
-    	3. PProf的使用
-    	4. 可视化界面和图形化
-    	5. 可视化的内容说明
-    	6. 实例分析说明
-    	7. 对比和采样
-    	8. 线上如何使用pprof 开关？定期采样？
-    	9. 总结
-2. GODEBUG工具
-3. 进程诊断工具Gops
-4. 逃逸分析
-5. 常见线上问题举例说明
+    2. PProf简介
+    3. PProf的简单使用
+    4. 通过交互式终端使用
+    5. 可视化界面
+    6. 与性能测试结合做剖析
+    7. 小结
+    8. 实例1-排查CPU占用过高问题
+    9. 实例2-排查内存占用过高问题
+    10. 实例3-排查频繁GC问题
+    11. 实例4-排查协程泄漏问题
+    12. 实例5-排查锁竞争问题
+    13. 实例6-排查阻塞问题
+2. fgprof   https://xargin.com/go-perf-optimization/  https://github.com/felixge/fgprof
+3. data race
+4. GODEBUG工具
+5. 进程诊断工具Gops
+6. 逃逸分析
+7. 常见线上问题举例说明
 
 
 
@@ -68,3 +74,23 @@ https://www.php.cn/manual/view/35260.html
 trace：https://blog.csdn.net/qq_30549833/article/details/89381790
 
 golang pprof 实战https://blog.wolfogre.com/posts/go-ppof-practice/
+
+
+
+https://xargin.com/go-perf-optimization/
+
+
+
+
+
+https://www.kancloud.cn/aceld/golang/1958304
+
+
+
+https://colobu.com/2019/08/20/use-pprof-to-compare-go-memory-usage/
+
+
+
+
+
+https://studygolang.com/articles/30507
