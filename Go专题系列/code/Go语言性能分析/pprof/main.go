@@ -26,7 +26,6 @@ func MakeMap2() map[int]int {
 func test1(w http.ResponseWriter, r *http.Request) {
 	MakeMap1()
 	MakeMap2()
-
 	w.Write([]byte("12321312"))
 }
 
