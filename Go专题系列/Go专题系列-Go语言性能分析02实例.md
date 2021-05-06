@@ -7,4 +7,8 @@
 5. 实例5-排查锁竞争问题
 6. 实例6-排查阻塞问题
 
+https://blog.csdn.net/weixin_42847874/article/details/103153349
+
+https://www.cnblogs.com/sunsky303/p/9296188.html
+
 ## 实例1-排查CPU占用过高问题
