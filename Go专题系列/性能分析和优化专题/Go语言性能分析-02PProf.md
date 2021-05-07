@@ -1,5 +1,29 @@
 # 性能剖析工具PProf
 
+1.压力测试工具ab
+
+2.PProf简介
+
+3.PProf的简单使用
+
+4.通过交互式终端使用PProf
+
+5.通过可视化界面使用PProf
+
+6.排查CPU占用过高问题
+
+7.排查内存占用过高问题
+
+8.排查频繁GC问题
+
+9.排查协程泄漏问题
+
+10.排查锁竞争问题
+
+11.排查阻塞问题
+
+12.性能优化案列
+
 ## 第一节：压力测试工具ab
 
 ### ab工具介绍
@@ -92,6 +116,8 @@ Percentage of the requests served within a certain time (ms)
 
 ### PProf是什么
 
+> pprof is a tool for visualization and analysis of profiling data.
+
 PProf是分析性能、分析数据的工具，并支持可视化的图形分析。**是Go语言中必知必会的技能点**。
 
 ### PProf使用姿势
@@ -104,9 +130,9 @@ PProf是分析性能、分析数据的工具，并支持可视化的图形分析
 
 使用方式
 
-- Report Generation：报告生成。
-- Interactive Terminal Use：交互式终端使用。
-- Web Interface：Web界面。
+- Report Generation：报告生成。    [格式：`pprof <format> [options] source`]
+- Interactive Terminal Use：交互式终端使用。  [格式：`pprof [options] source`]
+- Web Interface：Web界面。 [格式：`pprof -http=[host]:[port] [options] source`]
 
 ### PProf可以做什么
 
@@ -306,9 +332,29 @@ go tool pprof http://127.0.0.1:6061/debug/pprof/profile?seconds=60
    }
    ```
 
-在大多数情况下，我们可以得出一个应用程序的运行情况，知道当前是什么函数，正在做什么事情，占用了多少资源等等，以此得到一个初步的分析方向。
+##### 常用交互命令行
 
-我们还可以使用`list 函数名`命令查看具体的函数分析，例如执行`list makeMap1`查看我们编写的函数的详细分析 (若函数名不明确，则默认对该函数名进行模糊匹配):
+- help  可以查看所有命令的使用说明
+
+- **top** 	可以查看TOP多少分配情况 ：`top -cum 15` 按照cum进行排序取前15个
+
+- **list** 	 展示源码及相应损耗，可以看到那块代码耗时最多，那些可以做优化，一目了然
+
+- **web** 	使用浏览器视图展开
+
+- tree 	以树状显示
+
+- png-blog 	以图片格式输出
+
+- svg 	生成浏览器可以识别的svg文件
+
+- traces 打印所有调用栈信息
+
+  注意：PProf中的所有功能都会根据 Profile的不同类型展示不同的对应结果
+
+例子：
+
+可以使用`list 函数名`命令查看具体的函数分析，例如执行`list makeMap1`查看我们编写的函数的详细分析 (若函数名不明确，则默认对该函数名进行模糊匹配):
 
 ```
 (pprof) list makeMap1
@@ -332,25 +378,154 @@ ROUTINE ======================== main.makeMap1 in D:\www\Snail\Go涓撻绯诲
 
 可以看出该函数那一行占用CPU资源最多。
 
-##### 常用交互命令行
+## 第五节：可视化界面
 
-- help  可以查看所有命令的使用说明
+```
+wget http://127.0.0.1:6061/debug/pprof/profile
+```
 
-- **top** 	可以查看TOP多少分配情况 ：`top -cum 15` 按照cum进行排序取前15个
+**默认需要等待30s**，执行完毕后在当前目录下可发现采集的profile文件。下面咱们来生成可视化界面：
 
-- **list** 	 展示源码及相应损耗，可以看到那块代码耗时最多，那些可以做优化，一目了然
+```
+// 这里端口自定义 只要你能访问到就行
+go tool pprof -http=:8000 profile
+```
 
-- **web** 	使用浏览器视图展开
+可能会出现`Could not execute dot; may need to install graphviz.`，那么意味着需要安装 graphviz组件。http://www.graphviz.org/download/
 
-- tree 	以树状显示
+windows下安装：
 
-- png-blog 	以图片格式输出
+1. `Graphviz.7z`解压后
+2. 将graphviz安装目录下的bin文件夹添加到Path环境变量中。
+3. 在终端输入dot -version查看是否安装成功。
 
-- svg 	生成浏览器可以识别的svg文件
+通过PProf提供的可视化界面，我们能够更方便、更直观地看到Go应用程序的调用链和使用情况等。另外，在View菜单栏中，PProf还支持多种分析方式，如图
 
-- traces 打印所有调用栈信息
+![pprof_gongneng](http://cdn.xiaot123.com/blog/2021-04/pprof_gongneng.png-blog)
 
-  注意：PProf中的所有功能都会根据 Profile的不同类型展示不同的对应结果
+
+
+### profile文件分析CPU Profiling
+
+我们将对基于`CPU Profiling`抓取的profile文件进行一一介绍。其实profile文件类型的分析模式是互通的，只需了解一种即可。
+
+
+
+#### Top
+
+该视图与前面讲解命令行交互的top命令的作用和含义是一样的
+
+ps：点击栏目可以进行相关的排序
+
+![pprof_gongneng](http://cdn.xiaot123.com/blog/2021-04/pprof_top.png-blog)
+
+#### Graph视图
+
+视图展示的是整体的函数调用流程，框越大、线越粗、框颜色越鲜艳（红色），代表它占用的时间越久，开销越大。相反，框越小、线越浅、框颜色越淡，则代表在整体的函数调用流程中，它的开销越小。
+
+### Interpreting the Callgraph  解释gragh图怎么看
+
+- **Node Color**:节点颜色
+  - large positive cum values are red.  消耗比较大的cum节点用红色标记
+  - large negative cum values are green.减少比较多的cum节点用绿色标记（用于2个报告做对比时候）
+  - cum values close to zero are grey.消耗比较小，接近零值的用灰色标记
+- **Node Font Size**: 字体大小
+  - larger font size means larger absolute flat values. 字体越大代码其代表的相应的值约大
+  - smaller font size means smaller absolute flat values.字体越小，代表其相应的值约小
+- **Edge Weight**:连线粗细
+  - thicker edges indicate more resources were used along that path.较粗的连线，代表沿改路径使用了更多的资源
+  - thinner edges indicate fewer resources were used along that path.较细的连线，代表沿改路径使用了较少的资源
+- **Edge Color**: 连线颜色
+  - large positive values are red. 大的正值是红色的
+  - large negative values are green.大的负值是绿色的
+  - values close to zero are grey.接近零的值为灰色
+- **Dashed Edges**: some locations between the two connected locations were removed.删除了两个相连位置之间的某些位置。
+- **Solid Edges**: one location directly calls the other.一个位置直接调用另一位置
+- **"(inline)" Edge Marker**: the call has been inlined into the caller.
+
+![pprof_gongneng](http://cdn.xiaot123.com/blog/2021-04/pprof_Graph.png-blog)
+
+因此我们可以用此视图分析谁才是开销大头，它又是因为什么调用流程而被调用的。
+
+#### Flame Graph视图
+
+1. Flame Graph（火焰图）是动态的，调用顺序由上到下（A→B→C→D）
+2. x 轴表示抽样数，如果一个函数在 x 轴占据的宽度越宽，就表示它被抽到的次数多，即执行的时间长。
+3. y 轴表示调用栈，每一层都是一个函数。调用栈越深，火焰层越多
+4. 每一块代表一个函数、区块越大，代表占用CPU的时间越长。同时它还支持点击块进行深入分析。
+
+![pprof_gongneng](http://cdn.xiaot123.com/blog/2021-04/pprof_Flame_Graph.png-blog)
+
+#### Peek视图
+
+此视图与Top视图相比，增加了所属上下文信息的展示，即函数的输出调用者和被调用者。
+
+![pprof_gongneng](http://cdn.xiaot123.com/blog/2021-04/pprof_Peek.png-blog)
+
+#### Source视图
+
+该视图主要增加了面向源代码的追踪和分析，可以看到其开销主要消耗在哪里。
+
+![pprof_gongneng](http://cdn.xiaot123.com/blog/2021-04/pprof_Source.png-blog)
+
+
+
+## 第六节：与性能测试结合做剖析
+
+`go test`命令有两个参数和 pprof 相关，它们分别指定生成的 CPU 和 Memory profiling 保存的文件：
+
+- -cpuprofile：cpu profiling 数据要保存的文件地址
+- -memprofile：memory profiling 数据要报文的文件地址
+
+
+
+### CPU profiling 
+
+```
+//执行性能测试的同时，也会执行 CPU profiling，并把结果保存在 cpu.prof 文件中：
+go test -bench=. -cpuprofile=cpu.profile
+
+//分析查看报告
+go tool pprof -http=:8001 cpu.profile
+```
+
+### Memory profiling
+
+```
+//执行测试的同时，也会执行 Mem profiling，并把结果保存在 cpu.prof 文件中：
+go test -bench . -memprofile=mem.profile
+
+//分析查看报告
+go tool pprof -http=:8001 mem.profile
+```
+
+需要注意的是，Profiling 一般和性能测试一起使用，这个原因在前文也提到过，只有应用在负载高的情况下 Profiling 才有意义。
+
+## 第七节：排查CPU占用过高问题
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ### Heap Profiling:
 
@@ -587,75 +762,7 @@ Cond的主要作用就是获取锁之后，wait()方法会等待一个通知，�
 
 
 
-## 第五节：可视化界面
 
-```
-wget http://127.0.0.1:6061/debug/pprof/profile
-```
-
-默认需要等待30s，执行完毕后在当前目录下可发现采集的profile文件。下面咱们来生成可视化界面：
-
-```
-// 这里端口自定义 只要你能访问到就行
-go tool pprof -http=:8000 profile
-```
-
-可能会出现`Could not execute dot; may need to install graphviz.`，那么意味着需要安装 graphviz组件。
-
-windows下安装：
-
-1. `Graphviz.7z`解压后
-2. 将graphviz安装目录下的bin文件夹添加到Path环境变量中。
-3. 在终端输入dot -version查看是否安装成功。
-
-通过PProf提供的可视化界面，我们能够更方便、更直观地看到Go应用程序的调用链和使用情况等。另外，在View菜单栏中，PProf还支持多种分析方式，如图
-
-![pprof_gongneng](http://cdn.xiaot123.com/blog/2021-04/pprof_gongneng.png-blog)
-
-
-
-### profile文件分析CPU Profiling
-
-我们将对基于`CPU Profiling`抓取的profile文件进行一一介绍。其实profile文件类型的分析模式是互通的，只需了解一种即可。
-
-
-
-#### Top
-
-该视图与前面讲解命令行交互的top命令的作用和含义是一样的
-
-ps：点击栏目可以进行相关的排序
-
-![pprof_gongneng](http://cdn.xiaot123.com/blog/2021-04/pprof_top.png-blog)
-
-#### Graph视图
-
-视图展示的是整体的函数调用流程，框越大、线越粗、框颜色越鲜艳（红色），代表它占用的时间越久，开销越大。相反，框越小、线越浅、框颜色越淡，则代表在整体的函数调用流程中，它的开销越小。
-
-![pprof_gongneng](http://cdn.xiaot123.com/blog/2021-04/pprof_Graph.png-blog)
-
-因此我们可以用此视图分析谁才是开销大头，它又是因为什么调用流程而被调用的。
-
-#### Flame Graph视图
-
-1. Flame Graph（火焰图）是动态的，调用顺序由上到下（A→B→C→D）
-2. x 轴表示抽样数，如果一个函数在 x 轴占据的宽度越宽，就表示它被抽到的次数多，即执行的时间长。
-3. y 轴表示调用栈，每一层都是一个函数。调用栈越深，火焰就越高
-4. 每一块代表一个函数、区块越大，代表占用CPU的时间越长。同时它还支持点击块进行深入分析。
-
-![pprof_gongneng](http://cdn.xiaot123.com/blog/2021-04/pprof_Flame_Graph.png-blog)
-
-#### Peek视图
-
-此视图与Top视图相比，增加了所属上下文信息的展示，即函数的输出调用者和被调用者。
-
-![pprof_gongneng](http://cdn.xiaot123.com/blog/2021-04/pprof_Peek.png-blog)
-
-#### Source视图
-
-该视图主要增加了面向源代码的追踪和分析，可以看到其开销主要消耗在哪里。
-
-![pprof_gongneng](http://cdn.xiaot123.com/blog/2021-04/pprof_Source.png-blog)
 
 ### trace分析
 
@@ -683,36 +790,7 @@ $ go tool trace trace
 
 
 
-## 第六节：与性能测试结合做剖析
 
-`go test`命令有两个参数和 pprof 相关，它们分别指定生成的 CPU 和 Memory profiling 保存的文件：
-
-- -cpuprofile：cpu profiling 数据要保存的文件地址
-- -memprofile：memory profiling 数据要报文的文件地址
-
-
-
-### CPU profiling 
-
-```
-//执行性能测试的同时，也会执行 CPU profiling，并把结果保存在 cpu.prof 文件中：
-go test -bench=. -cpuprofile=cpu.profile
-
-//分析查看报告
-go tool pprof -http=:8001 cpu.profile
-```
-
-### Memory profiling
-
-```
-//执行测试的同时，也会执行 Mem profiling，并把结果保存在 cpu.prof 文件中：
-go test -bench . -memprofile=mem.profile
-
-//分析查看报告
-go tool pprof -http=:8001 mem.profile
-```
-
-需要注意的是，Profiling 一般和性能测试一起使用，这个原因在前文也提到过，只有应用在负载高的情况下 Profiling 才有意义。
 
 
 
