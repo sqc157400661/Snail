@@ -499,35 +499,143 @@ go test -bench . -memprofile=mem.profile
 go tool pprof -http=:8001 mem.profile
 ```
 
-需要注意的是，Profiling 一般和性能测试一起使用，这个原因在前文也提到过，只有应用在负载高的情况下 Profiling 才有意义。
+需要注意的是，Profiling 一般和性能测试一起使用，这个原因在前文也提到过，只有应用在负载高的情况下 Profiling 才有意义。配合单元测试可以针对函数进行提前的性能优化
 
 ## 第七节：排查CPU占用过高问题
 
+```
+package main
+
+import (
+	"net/http"
+	_ "net/http/pprof" // 第一步～
+	"regexp"
+)
+
+func main() {
+	// 路由配置
+	http.HandleFunc("/cpu", myPrint)
+	_ = http.ListenAndServe("0.0.0.0:6062", nil)
+}
+
+func myPrint(writer http.ResponseWriter, request *http.Request) {
+	go func() {
+		for i := 0; i < 100000; i++ {
+			getPhone([]string{"18505921256", "13489594009", "12759029321"})
+		}
+	}()
+	_, _ = writer.Write([]byte("cpu"))
+}
+
+func getPhone(s []string) bool{
+	reg := `^1([38][0-9]|14[57]|5[^4])\d{8}$`
+	rgx := regexp.MustCompile(reg)
+	for _, v := range s {
+		if rgx.MatchString(v) {
+			return true
+		}
+	}
+	return false
+}
+```
+
+**第一步：**
+
+```
+ab -c100 -n100 'http://127.0.0.1:6062/cpu'
+```
+
+![1620379392570](D:\www\Snail\Go专题系列\images\1620379392570.png)
+
+可以看到 CPU 占用相当高，这显然是有问题的，我们使用 `go tool pprof` 来排场一下：
+
+**第二步：**
+
+```
+go tool pprof http://localhost:6062/debug/pprof/profile
+```
+
+采样完毕之后自动进入 pprof 的交互命令行界面：
+
+![1620379518241](D:\www\Snail\Go专题系列\images\1620379518241.png)
+
+ 输入 top 命令，查看 CPU 占用较高的调用：
+
+```
+top -cum
+```
+
+![1620379594887](D:\www\Snail\Go专题系列\images\1620379594887.png)
+
+可以看到 myprint和getPhone函数占用的资源最多
+
+```
+list myPrint
+
+list getPhone
+```
+
+![1620383524085](D:\www\Snail\Go专题系列\images\1620383524085.png)
+
+上面其实已经可以定位到比较慢的执行逻辑来，但是咱们仍然去利用web interface工具来看看
+
+**第三步:**
+
+```
+go tool pprof -http=:8000 profile
+```
+
+结点比较多的时候输出会自动把一些耗时少的结点 drop 掉。也是合理的，没性能问题的流程你优化个啥啊，耍流氓？
+
+![1620383981124](D:\www\Snail\Go专题系列\images\1620383981124.png)
+
+
+
+这里同样也可以定位到是正则这里有问题，那么咱们接着往下走
+
+**第四部：**比 pprof 更直观的火焰图
+
+![1620384215613](D:\www\Snail\Go专题系列\images\1620384215613.png)
+
+
+
+理论上输出火焰图之后我们最主要应该关注的是较宽的这些“平顶山”，定位代码的问题几乎就是秒级了，！也可能有人觉得火焰图虽直观，但并不具体。比如我想知道一个函数里每行消耗比较大的调用在整个过程中占用了多少时间，占用了百分之多少，这样我优化了以后才好去吹牛逼，我这次的优化使性能提高了百分之多少多少。这要怎么办呢。这时候还是得用 pprof。
+
+
+
+**第五步：优化**
+
+```
+func myPrint(writer http.ResponseWriter, request *http.Request) {
+	go func() {
+		//for i := 0; i < 100000; i++ {
+		getPhone([]string{"18505921256", "13489594009", "12759029321"})
+		//}
+	}()
+	_, _ = writer.Write([]byte("cpu"))
+}
+```
+
+![1620385374078](D:\www\Snail\Go专题系列\images\1620385374078.png)
+
+可以看到性能提升还是比较明显的，
+
+```
+#重新生成报告
+ go tool pprof -http=:8000  profile
+#生成报告对比
+go tool pprof -http=:8000 --base profile0 profile
+```
+
+![1620385564081](D:\www\Snail\Go专题系列\images\1620385564081.png)
+
+
+
+## 第八节：排查内存占用过高问题
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-### Heap Profiling:
 
 ```
  go tool pprof http://127.0.0.1:6061/debug/pprof/heap
