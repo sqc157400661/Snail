@@ -633,6 +633,8 @@ go tool pprof -http=:8000 --base profile0 profile
 
 ## 第八节：排查内存占用过高问题
 
+http://vearne.cc/archives/671
+
 
 
 
