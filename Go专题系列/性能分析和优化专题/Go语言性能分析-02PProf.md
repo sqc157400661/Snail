@@ -633,10 +633,6 @@ go tool pprof -http=:8000 --base profile0 profile
 
 ## 第八节：排查内存占用过高问题
 
-http://vearne.cc/archives/671
-
-
-
 
 
 ```
@@ -657,24 +653,223 @@ http://vearne.cc/archives/671
    > 两个对象数指标主要是为 GC 优化提供依据，当我们进行 GC 调优时，会同时关注应用分配的对象数、正在使用的对象数，以及 GC 的 CPU 占用的指标。
 
 ```
-// 结果:
-Fetching profile over HTTP from http://127.0.0.1:6061/debug/pprof/heap
-Saved profile in C:\Users\viruser.v-desktop\pprof\pprof.alloc_objects.alloc_space.inuse_objects.inuse_space.007.pb.gz
-Type: inuse_space
-Time: Nov 4, 2020 at 10:37am (CST)
-Entering interactive mode (type "help" for commands, "o" for options)
-(pprof) top
-Showing nodes accounting for 880.32kB, 100% of 880.32kB total
-      flat  flat%   sum%        cum   cum%
-  880.32kB   100%   100%   880.32kB   100%  main.makeMap1
-         0     0%   100%   880.32kB   100%  main.test1
-         0     0%   100%   880.32kB   100%  net/http.(*ServeMux).ServeHTTP
-         0     0%   100%   880.32kB   100%  net/http.(*conn).serve
-         0     0%   100%   880.32kB   100%  net/http.HandlerFunc.ServeHTTP
-         0     0%   100%   880.32kB   100%  net/http.serverHandler.ServeHTTP
-(pprof)
+
+package main
+
+import (
+	"bytes"
+	"fmt"
+	"net"
+	"net/http"
+	_ "net/http/pprof" // 第一步～
+	"sync"
+	"time"
+)
+
+var HttpClient *http.Client
+var Once sync.Once
+
+func HttpClientInstance() *http.Client {
+	Once.Do(func() {
+		HttpClient = &http.Client{
+			Transport: &http.Transport{
+				DialContext: (&net.Dialer{
+					Timeout:   50 * time.Millisecond,
+					KeepAlive: 10 * time.Second,
+				}).DialContext,
+				MaxIdleConns:        200,
+				MaxIdleConnsPerHost: 100,
+				MaxConnsPerHost:     50,
+				IdleConnTimeout:     1 * time.Second},
+			Timeout: 1 * time.Second,
+		}
+	})
+	return HttpClient
+}
+
+func main() {
+	// 路由配置
+	http.HandleFunc("/mem", myPrint)
+	_ = http.ListenAndServe("0.0.0.0:6062", nil)
+}
+
+func myPrint(writer http.ResponseWriter, request *http.Request) {
+	go doSomeThing()
+	_, _ = writer.Write([]byte("mem"))
+}
+func doSomeThing() {
+	for i := 0; i < 100; i++ {
+		ticker := time.NewTicker(100 * time.Millisecond) //指定定时器间隔时间为1S
+		go func() {
+			<-ticker.C
+			h()
+		}()
+		time.Sleep(5 * time.Second) //休眠10S为了看到效果，不然直接停了
+	}
+}
+
+func h() []*int {
+	_ = getjson()
+	s := []*int{new(int), new(int), new(int), new(int)}
+	// 使用此s切片 ...
+	time.Sleep(1 * time.Second) //休眠10S为了看到效果，不然直接停了
+	return s[1:3:3]
+}
+
+func getjson() error {
+	req, rerr := http.NewRequest("GET", "http://blog.xiaot123.com/mix-manifest.json", nil)
+	if rerr != nil {
+		return rerr
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, rserr := HttpClientInstance().Do(req)
+	if rserr != nil {
+		return rserr
+	}
+	var byteSlice []byte
+	byteSlice = make([]byte, 0, 10*1024)
+	buffer := bytes.NewBuffer(byteSlice)
+	_, _ = buffer.ReadFrom(resp.Body) // ioutil.ReadAll(resp.Body) 这里一般用这个 是对这块的buffer.ReadFrom封装
+	res := buffer.Bytes()
+	fmt.Println("resp byte length", len(res))
+	return nil
+}
 
 ```
+
+**第一步：首先来看一下火焰图**
+
+alloc_objects：
+
+因为cpu也很高，所以咱们先看一下alloc_objects
+
+![1620455654531](D:\www\Snail\Go专题系列\images\1620455654531.png)
+
+可以看到是getJson方式里，发生http请求里申请了大量的内存对象
+
+inuse_objects ：
+
+![1620455824222](D:\www\Snail\Go专题系列\images\1620455824222.png)
+
+
+
+**第二步：代码优化**
+
+```golang
+package main
+
+import (
+	"bytes"
+	"fmt"
+	"io/ioutil"
+	"net"
+	"net/http"
+	_ "net/http/pprof" // 第一步～
+	"sync"
+	"time"
+)
+
+var HttpClient *http.Client
+var Once sync.Once
+
+func HttpClientInstance() *http.Client {
+	Once.Do(func() {
+		HttpClient = &http.Client{
+			Transport: &http.Transport{
+				DialContext: (&net.Dialer{
+					Timeout:   50 * time.Millisecond,
+					KeepAlive: 10 * time.Second,
+				}).DialContext,
+				MaxIdleConns:        200,
+				MaxIdleConnsPerHost: 100,
+				MaxConnsPerHost:     50,
+				IdleConnTimeout:     1 * time.Second},
+			Timeout: 1 * time.Second,
+		}
+	})
+	return HttpClient
+}
+
+func main() {
+	// 路由配置
+	http.HandleFunc("/mem", myPrint)
+	_ = http.ListenAndServe("0.0.0.0:6062", nil)
+}
+
+func myPrint(writer http.ResponseWriter, request *http.Request) {
+	go doSomeThing()
+	_, _ = writer.Write([]byte("mem"))
+}
+func doSomeThing() {
+	for i := 0; i < 100; i++ {
+		ticker := time.NewTicker(100 * time.Millisecond) //指定定时器间隔时间为1S
+		go func() {
+			<-ticker.C
+			h()
+		}()
+		time.Sleep(5 * time.Second) //休眠10S为了看到效果，不然直接停了
+		ticker.Stop()//停止该定时器 +++
+	}
+}
+
+
+func h() []*int {
+	_ = getjson()
+	s := []*int{new(int), new(int), new(int), new(int)}
+	// 使用此s切片 ...
+	time.Sleep(1 * time.Second) //休眠10S为了看到效果，不然直接停了
+	s[0], s[len(s)-1] = nil, nil // 重置首尾元素指针 +++
+	return s[1:3:3]
+}
+
+func getjson() error{
+	req, rerr := http.NewRequest("GET", "http://blog.xiaot123.com/mix-manifest.json", bytes.NewBuffer([]byte{}))
+	if rerr != nil {
+		return rerr
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, rserr := HttpClientInstance().Do(req)
+	if rserr != nil {
+		return  rserr
+	}
+	defer resp.Body.Close() // 关闭资源 +++
+	res, _ := ioutil.ReadAll(resp.Body)
+	fmt.Println("resp byte length", len(res))
+	return nil
+}
+```
+
+
+
+第三步：对比数据
+
+go tool pprof -http=:8000 --base heap.1 heap.2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
