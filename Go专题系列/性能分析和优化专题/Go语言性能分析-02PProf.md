@@ -849,6 +849,54 @@ go tool pprof -http=:8000 --base heap.1 heap.2
 
 
 
+## 第九节：排查频繁GC问题
+
+参考文档：
+
+https://eddycjy.com/posts/go/tools/2019-09-02-godebug-gc/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
