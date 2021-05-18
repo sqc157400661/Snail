@@ -1,120 +1,128 @@
-# Golang 常⻅面试题目解析
+# Golang 常见面试题目解析
 
-### 交替打印数字和字母
+### （1）交替打印数字和字母
 
 #### 问题描述
 
-```
-使用两个 goroutine  交替打印序列，一个  goroutine  打印数字， 另外一
-个  goroutine  打印字母， 最终效果如下：
-```
+使用两个 goroutine  交替打印序列，一个  goroutine  打印数字， 另外一
+个  goroutine  打印字母， 最终效果如下：
+
+`1 12AB34CD56EF78GH910IJ1112KL1314MN1516OP1718QR1920ST2122UV2324WX2526YZ`
+
 #### 解题思路
 
-```
 问题很简单，使用 channel 来控制打印的进度。使用两个 channel ，来分别控制数字和
 字母的打印序列， 数字打印完成后通过 channel 通知字母打印, 字母打印完成后通知数
 字打印，然后周而复始的工作。
-源码参考
-```
-```
-1 12AB34CD56EF78GH910IJ1112KL1314MN1516OP1718QR1920ST2122UV2324WX2526YZ
-```
-```
-1 letter,number := make(chan bool),make(chan bool)
-2 wait := sync.WaitGroup{}
-34 go func() {
-5 i := 1
-```
-(^6) for {
-(^7) select {
-(^8) case <-number:
-(^9) fmt.Print(i)
-(^10) i++
-11 fmt.Print(i)
-12 i++
-13 letter <- true
-(^14) break
-(^15) default:
-(^16) break
-(^17) }
-(^18) }
-(^19) }()
-20 wait.Add(1)
-21 go func(wait *sync.WaitGroup) {
-22 str := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-(^2324) i := 0
-(^25) for{
 
+#### 源码参考：
+
+```
+package main
+
+import (
+	"fmt"
+)
+
+func main() {
+	str := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	num := 1
+	letter, number, done := make(chan bool), make(chan bool), make(chan bool)
+	go func() {
+		for {
+			select {
+			case <-number:
+				fmt.Print(num)
+				num++
+				fmt.Print(num)
+				num++
+				letter <- true
+			}
+		}
+	}()
+	go func() {
+		i := 0
+		for {
+			select {
+			case <-letter:
+				for j := 0; j < 2; j++ {
+					if i > len(str)-1 {
+						done <- true
+						return
+					}
+					fmt.Print(str[i : i+1])
+					i++
+				}
+				number <- true
+			}
+		}
+	}()
+	number<-true
+	<-done
+}
+```
 
 #### 源码解析
 
 ```
-这里用到了两个 channel负责通知，letter负责通知打印字母的goroutine来打印字母，
-number用来通知打印数字的goroutine打印数字。
-wait用来等待字母打印完成后退出循环。
+1、这里用到了两个 channel负责通知，letter负责通知打印字母的goroutine来打印字母，
+2、number用来通知打印数字的goroutine打印数字。
+3、<-done用来等待字母打印完成后退出循环。
 ```
-### 判断字符串中字符是否全都不同
+### （2）判断字符串中字符是否全都不同
 
 #### 问题描述
 
-#### 请实现一个算法，确定一个字符串的所有字符【是否全都不同】。这里我们要求【不允
+请实现一个算法，确定一个字符串的所有字符【是否全都不同】。这里我们要求【**不允许使用额外的存储结构**】。 给定一个string，请返回一个bool值,true代表所有字符全都不同，false代表存在相同的字符。 保证字符串中的字符为【ASCII字符】。字符串的的长度小于等于【3000】。
+
+#### 解题思路
+
+这里有几个重点：
+
+- 第一个是 ASCII字符 ， ASCII字符 字符一共有256个，其中128个是常
+  用字符，可以在键盘上输入。128之后的是键盘上无法找到的。
+- 然后是**全部不同**，也就是字符串中的字符没有重复的，再次，不准使用额外的储存结
+  构，且字符串小于等于3000。
+- 如果允许其他额外储存结构，这个题目很好做。如果不允许的话，可以使用golang内置
+  的方式实现。
+
+#### 源码参考
 
 ```
-许使用额外的存储结构】。 给定一个string，请返回一个bool值,true代表所有字符全都
-不同，false代表存在相同的字符。 保证字符串中的字符为【ASCII字符】。字符串的⻓
-度小于等于【3000】。
-解题思路
-这里有几个重点，第一个是 ASCII字符 ， ASCII字符 字符一共有256个，其中128个是常
-用字符，可以在键盘上输入。128之后的是键盘上无法找到的。
-然后是全部不同，也就是字符串中的字符没有重复的，再次，不准使用额外的储存结
-构，且字符串小于等于3000。
-如果允许其他额外储存结构，这个题目很好做。如果不允许的话，可以使用golang内置
-的方式实现。
-源码参考
-通过 strings.Count  函数判断：
-```
-26 select {
-27 case <-letter:
+/*
+1、golang内置方法 strings.Count ,可以用来判断在一个字符串中包含的另外一个字符串的数量。
+2、golang内置方法 strings.Index 和strings.LastIndex ，用来判断指定字符串在另外一个字符串的索引位置，分别是第一次发现位置和最后发现位置。
+*/
+package main
 
-(^28) if i >= strings.Count(str,"")-1 {
-(^29) wait.Done()
-(^30) return
-(^31) }
-(^3233) fmt.Print(str[i:i+1])
-34 i++
-35 if i >= strings.Count(str,"") {
-36 i = 0
-(^37) }
-(^38) fmt.Print(str[i:i+1])
-(^39) i++
-(^40) number <- true
-(^41) break
-(^42) default:
-43 break
-44 }
-4546 }
-(^47) }(&wait)
-(^48) number<-true
-(^49) wait.Wait()
-1 func isUniqueString(s string) bool {
-2 if strings.Count(s,"") > 3000{
-3 return false
+import (
+	"fmt"
+	"strings"
+)
 
+func main() {
+	fmt.Println(isUnique("sdfsafs"))
+	fmt.Println(isUnique("abcd"))
+}
 
+func isUnique(str string) bool {
+	// 判断字符串数量
+	if strings.Count(str, "") > 3000 {
+		return false
+	}
+	for k, v := range str {
+		if v > 127 {
+			return false
+		}
+		if strings.LastIndex(str, str[k:k+1]) != k {
+			return false
+		}
+	}
+	return true
+}
 ```
-通过 strings.Index和 strings.LastIndex 函数判断：
-```
-#### 源码解析
 
-#### 以上两种方法都可以实现这个算法。
-
-```
-第一个方法使用的是golang内置方法 strings.Count ,可以用来判断在一个字符串中包含
-的另外一个字符串的数量。
-第二个方法使用的是golang内置方法 strings.Index 和strings.LastIndex ，用来判断指
-定字符串在另外一个字符串的索引未知，分别是第一次发现位置和最后发现位置。
-```
-### 翻转字符串
+### （3）翻转字符串
 
 #### 问题描述
 
