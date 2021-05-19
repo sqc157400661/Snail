@@ -1,203 +1,207 @@
-# Go常见语法面试题
+# Go常见语法面试题 
 
-### 常⻅语法题目 一
+### （1）下面代码能运行吗？为什么。
 
-### 1、下面代码能运行吗？为什么。
+```go
+package main
 
-27 for i := 0; i < repeat; i++ {
-28 x, y, z = move(repeatCmd, x, y, z)
+type Param map[string]interface{}
+type Show struct {
+	Param
+}
 
-(^29) }
-(^30) repeat = 0
-(^31) repeatCmd = ""
-(^32) case repeat > 0 && s != '(' && s != ')':
-(^33) repeatCmd = repeatCmd + string(s)
-34 case s == 'L':
-35 z = (z + 1) % 4
-36 case s == 'R':
-(^37) z = (z - 1 + 4) % 4
-(^38) case s == 'F':
-(^39) switch {
-(^40) case z == Left || z == Right:
-(^41) x = x - z + 1
-(^42) case z == Top || z == Bottom:
-43 y = y - z + 2
-44 }
-45 case s == 'B':
-(^46) switch {
-(^47) case z == Left || z == Right:
-(^48) x = x + z - 1
-(^49) case z == Top || z == Bottom:
-(^50) y = y + z - 2
-51 }
-52 }
-53 }
-(^54) return
-(^55) }
-56
-1 type Param map[string]interface{}
-(^23) type Show struct {
-4 Param
-5 }
-67 func main1() {
-(^8) s := new(Show)
-(^9) s.Param["RMB"] = 10000
+func main1() {
+	s := new(Show)
+	s.Param["RMB"] = 10000
+}
+```
 
 
 #### 解析
 
-#### 共发现两个问题：
+共发现两个问题：
 
 1. main  函数不能加数字。
-2. new  关键字无法初始化 Show  结构体中的  Param  属性，所以直接
-    对  s.Param  操作会出错。
+2. new  关键字无法初始化 Show  结构体中的  Param  属性，所以直接对  s.Param  操作会出错。
 
-### 2、请说出下面代码存在什么问题。
+### （2）请说出下面代码存在什么问题。
+
+```go
+type student struct {
+	Name string
+}
+
+func zhoujielun(v interface{}) {
+	switch msg := v.(type) {
+	case *student, student:
+		msg.Name
+	}
+}
+```
 
 #### 解析：
 
-```
-golang中有规定，switch type 的case T1，类型列表只有一个，那么 v := m.(type)
-中的 v 的类型就是T1类型。
-如果是case T1, T2，类型列表中有多个，那 v 的类型还是多对应接口的类型，也就
-是m 的类型。
-所以这里 msg的类型还是 interface{} ，所以他没有 Name 这个字段，编译阶段就会
-报错。具体解释⻅： https://golang.org/ref/spec#Type_switches
-```
-### 3、写出打印的结果。
+golang中有规定
 
-10 }
+1. switch type 的case T1，类型列表只有一个，那么 v := m.(type)中的 v 的类型就是T1类型。
+2. 如果是case T1, T2，类型列表中有多个，那 v 的类型还是多对应接口的类型，也就是m 的类型。
+3. 所以这里 msg的类型还是 interface{} ，所以他没有 Name 这个字段，编译阶段就会报错。具体解释见： https://golang.org/ref/spec#Type_switches
 
-```
-1 type student struct {
-```
-(^2) Name string
-(^3) }
-(^45) func zhoujielun(v interface{}) {
-6 switch msg := v.(type) {
-7 case *student, student:
-8 msg.Name
-(^9) }
-(^10) }
-1 type People struct {
-2 name string `json:"name"`
-(^3) }
-(^45) func main() {
-(^6) js := `{
-(^7) "name":"11"
-(^8) }`
-(^9) var p People
-10 err := json.Unmarshal([]byte(js), &p)
-11 if err != nil {
-12 fmt.Println("err: ", err)
-(^13) return
-(^14) }
-(^15) fmt.Println("people: ", p)
-(^16) }
+### （3）写出打印的结果。
 
+```go
+type People struct {
+	name string `json:"name"`
+}
+
+func main() {
+	js := `{
+	"name":"11"
+	}`
+	var p People
+	err := json.Unmarshal([]byte(js), &p)
+	if err != nil {
+		fmt.Println("err: ", err)
+		return
+	}
+	fmt.Println("people: ", p)
+}
+# 结果：
+#people:  {}
+```
 
 #### 解析：
 
+- 按照 golang 的语法，小写开头的方法、属性或 struct  是私有的，同样，在json 解码或转码的时候也无法进行私有属性的转换。
+- 题目中是无法正常得到 People 的name 值的。而且，私有属性name 也不应该加json的标签。
+
+### （4）下面的代码是有问题的，请说明原因。
+
+```go
+type People struct {
+	Name string
+}
+
+func (p *People) String() string {
+	return fmt.Sprintf("print: %v", p)
+}
+func main() {
+	p := &People{}
+	p.String()
+}
 ```
-按照 golang 的语法，小写开头的方法、属性或 struct  是私有的，同样，在json  解
-码或转码的时候也无法上线私有属性的转换。
-题目中是无法正常得到 People 的name 值的。而且，私有属性name 也不应该加
-json的标签。
-```
-### 4、下面的代码是有问题的，请说明原因。
 
 #### 解析：
 
-```
-在golang中 String() string 方法实际上是实现了 String 的接口的，该接口定义在
-fmt/print.go  中：
-```
-```
-在使用  fmt  包中的打印方法时，如果类型实现了这个接口，会直接调用。而题目中打
-印  p 的时候会直接调用 p 实现的  String() 方法，然后就产生了循环调用。
-```
-### 5、请找出下面代码的问题所在。
+在golang中 `String() string` 方法实际上是实现了 String 的接口的，该接口定义在`fmt/print.go` 中：
 
+```go
+type Stringer interface {
+ 	String() string
+}
 ```
-1 type People struct {
-2 Name string
-3 }
-```
-(^45) func (p *People) String() string {
-(^6) return fmt.Sprintf("print: %v", p)
-(^7) }
-(^89) func main() {
-(^10) p := &People{}
-11 p.String()
-12 }
-1 type Stringer interface {
-(^2) String() string
-(^3) }
-1 func main() {
-(^2) ch := make(chan int, 1000)
-(^3) go func() {
-(^4) for i := 0; i < 10; i++ {
-5 ch <- i
-6 }
-(^7) }()
-(^8) go func() {
-(^9) for {
-(^10) a, ok := <-ch
-(^11) if !ok {
-(^12) fmt.Println("close")
-13 return
-14 }
 
+在使用  fmt 包中的打印方法时，如果类型实现了这个接口，会直接调用。而题目中打印 p 的时候会直接调用 p 实现的  String() 方法，然后就产生了**循环调用**。
+
+### （5）请找出下面代码的问题所在。
+
+```go
+func main() {
+	ch := make(chan int, 1000)
+	go func() {
+		for i := 0; i < 10; i++ {
+			ch <- i
+		}
+	}()
+	go func() {
+		for {
+			a, ok := <-ch
+			if !ok {
+				fmt.Println("close")
+				return
+			}
+			fmt.Println("a: ", a)
+		}
+	}()
+	close(ch)
+	fmt.Println("ok")
+	time.Sleep(time.Second * 100)
+}
+```
 
 #### 解析：
 
+在 golang 中 goroutine  的调度时间是不确定的，在题目中，第一个写  channel 的  goroutine  可能还未调用或已调用但没有写完时直接  close  管道，可能导致写失败，既出现 panic  错误。
+
+### （6）请说明下面代码书写是否正确。
+
+```go
+var value int32
+
+//不断地尝试原子地更新value的值,直到操作成功为止
+func SetValue(delta int32) {
+    //在被操作值被频繁变更的情况下,CAS操作并不那么容易成功
+    //so 不得不利用for循环以进行多次尝试
+	for {
+		v := value
+        //在函数的结果值为true时,退出循环
+		if atomic.CompareAndSwapInt32(&value, v, (v + delta)) {
+			break
+		}
+         //操作失败的缘由总会是value的旧值已不与v的值相等了.
+        //CAS操作虽然不会让某个Goroutine阻塞在某条语句上,但是仍可能会使流产的执行暂时停一下,不过时间大都极其短暂.
+	}
+}
 ```
-在 golang 中 goroutine  的调度时间是不确定的，在题目中，第一个
-写  channel 的  goroutine  可能还未调用，或已调用但没有写完时直接  close  管道，
-可能导致写失败，既然出现 panic  错误。
-```
-### 6、请说明下面代码书写是否正确。
 
 #### 解析：
 
-```
-atomic.CompareAndSwapInt32  函数不需要循环调用。
-```
-### 7、下面的程序运行后为什么会爆异常。
+for循环中，我们使用语句v := value为变量v赋值。但是，要注意，其中的读取value的值的操作并不是并发安全的。在该读取操作被进行的过程中，其它的对此值的读写操作是可以被同时进行的。它们并不会受到任何限制。所以使用v := atomic.LoadInt32(&value)
 
-15 fmt.Println("a: ", a)
-16 }
+参考：
 
-(^17) }()
-(^18) close(ch)
-(^19) fmt.Println("ok")
-(^20) time.Sleep(time.Second * 100)
-(^21) }
-1 var value int
-23 func SetValue(delta int32) {
-(^4) for {
-(^5) v := value
-(^6) if atomic.CompareAndSwapInt32(&value, v, (v+delta)) {
-(^7) break
-(^8) }
-(^9) }
-10 }
-1 type Project struct{}
-23 func (p *Project) deferError() {
-4 if err := recover(); err != nil {
-(^5) fmt.Println("recover: ", err)
-(^6) }
-(^7) }
-(^89) func (p *Project) exec(msgchan chan interface{}) {
-(^10) for msg := range msgchan {
-11 m := msg.(int)
-12 fmt.Println("msg: ", m)
-13 }
-(^14) }
-(^1516) func (p *Project) run(msgchan chan interface{}) {
-(^17) for {
-(^18) defer p.deferError()
-(^19) go p.exec(msgchan)
+- http://ifeve.com/go-concurrency-atomic/  
+- https://blog.csdn.net/liuxinmingcode/article/details/50095615
+
+### （7）下面的程序运行后为什么会爆异常。
+
+```go
+type Project struct{}
+
+func (p *Project) deferError() {
+	if err := recover(); err != nil {
+		fmt.Println("recover: ", err)
+	}
+}
+func (p *Project) exec(msgchan chan interface{}) {
+	for msg := range msgchan {
+		m := msg.(int)
+		fmt.Println("msg: ", m)
+	}
+}
+func (p *Project) run(msgchan chan interface{}) {
+	for {
+		defer p.deferError()
+		go p.exec(msgchan)
+		time.Sleep(time.Second * 2)
+	}
+}
+func (p *Project) Main() {
+	a := make(chan interface{}, 100)
+	go p.run(a)
+	go func() {
+		for {
+			a <- "1"
+			time.Sleep(time.Second)
+		}
+	}()
+	time.Sleep(time.Second * 100000000000000)
+}
+func main() {
+	p := new(Project)
+	p.Main()
+}
+```
 
 
 #### 解析：
@@ -207,419 +211,284 @@ atomic.CompareAndSwapInt32  函数不需要循环调用。
 1. time.Sleep 的参数数值太大，超过了  1<<63 - 1  的限制。
 2. defer p.deferError()  需要在协程开始出调用，否则无法捕获 panic 。
 
-### 8、请说出下面代码哪里写错了
+#### 
 
-#### 解析：
+### （8）请说出下面代码，执行时为什么会报错
 
-#### 协程可能还未启动，管道就关闭了。
+```go
+type Student struct {
+	name string
+}
 
-### 9、请说出下面代码，执行时为什么会报错
-
-20 time.Sleep(time.Second * 2)
-21 }
-
-(^22) }
-(^2324) func (p *Project) Main() {
-(^25) a := make(chan interface{}, 100)
-(^26) go p.run(a)
-(^27) go func() {
-28 for {
-29 a <- "1"
-30 time.Sleep(time.Second)
-(^31) }
-(^32) }()
-(^33) time.Sleep(time.Second * 100000000000000)
-(^34) }
-(^3536) func main() {
-(^37) p := new(Project)
-38 p.Main()
-39 }
-1 func main() {
-(^2) abc := make(chan int, 1000)
-(^3) for i := 0; i < 10; i++ {
-(^4) abc <- i
-(^5) }
-6 go func() {
-7 for a := range abc {
-8 fmt.Println("a: ", a)
-(^9) }
-(^10) }()
-(^11) close(abc)
-(^12) fmt.Println("close")
-(^13) time.Sleep(time.Second * 100)
-(^14) }
+func main() {
+	m := map[string]Student{"people": {"zhoujielun"}}
+	m["people"].name = "wuyanzu"
+}
+```
 
 
 #### 解析：
 
+- **map的value本身是不可寻址的**，因为map中的值会在内存中移动，并且旧的指针地址在map改变时会变得无效。
+- 故如果需要修改map值，可以将 map 中的非指针类型value，修改为指针类型，比如使用 map[string]*Student.
+- 也可以借助变量如：
+
+```go
+m := map[string]Student{"people": {"zhoujielun"}}
+A := m["people"]
+A .name = "wuyanzu"
 ```
-map的value本身是不可寻址的，因为map中的值会在内存中移动，并且旧的指针地址在
-map改变时会变得无效。故如果需要修改map值，可以将 map 中的非指针类型
-value，修改为指针类型，比如使用 map[string]*Student.
+
+
+
+### （9）请说出下面的代码存在什么问题？
+
+```go
+type query func(string) string
+
+func exec(name string, vs ...query) string {
+	ch := make(chan string)
+	fn := func(i int) {
+		ch <- vs[i](name)
+	}
+	for i, _ := range vs {
+		go fn(i)
+	}
+	return <-ch
+}
+func main() {
+	ret := exec("111", func(n string) string {
+		return n + "func1"
+	}, func(n string) string {
+		return n + "func2"
+	}, func(n string) string {
+		return n + "func3"
+	}, func(n string) string {
+		return n + "func4"
+	})
+	fmt.Println(ret)
+}
 ```
-### 10、请说出下面的代码存在什么问题？
 
 #### 解析：
 
-```
 依据4个goroutine的启动后执行效率，很可能打印111func4，但其他的111func*也
 可能先执行，exec只会返回一条信息。
-```
-### 11、下面这段代码为什么会卡死？
 
-```
-1 type Student struct {
-2 name string
-3 }
-45 func main() {
-```
-(^6) m := map[string]Student{"people": {"zhoujielun"}}
-(^7) m["people"].name = "wuyanzu"
-(^8) }
-1 type query func(string) string
-(^23) func exec(name string, vs ...query) string {
-4 ch := make(chan string)
-5 fn := func(i int) {
-6 ch <- vs[i](name)
-(^7) }
-(^8) for i, _ := range vs {
-(^9) go fn(i)
-(^10) }
-(^11) return <-ch
-12 }
-1314 func main() {
-15 ret := exec("111", func(n string) string {
-(^16) return n + "func1"
-(^17) }, func(n string) string {
-(^18) return n + "func2"
-(^19) }, func(n string) string {
-(^20) return n + "func3"
-(^21) }, func(n string) string {
-22 return n + "func4"
-23 })
-24 fmt.Println(ret)
-(^25) }
-1 package main
+### （10）下面这段代码为什么会卡死？
 
+```go
+func main() {
+	var i byte
+	go func() {
+		for i = 0; i <= 255; i++ {
+		}
+	}()
+	fmt.Println("Dropping mic")
+	// Yield execution to force executing other goroutines
+	runtime.Gosched()
+	runtime.GC()
+	fmt.Println("Done")
+}
+```
 
 #### 解析：
 
-```
-Golang 中，byte 其实被 alias 到 uint8 上了。所以上面的 for 循环会始终成立，因为
-i++ 到 i=255 的时候会溢出，i <= 255 一定成立。
+Golang 中，byte 其实被 alias 到 uint8 上了。所以上面的 for 循环会始终成立，因为i++ 到 i=255 的时候会溢出，i <= 255 一定成立。
 也即是， for 循环永远无法退出，所以上面的代码其实可以等价于这样：
+
 ```
+go func() {
+	for {}
+}
 ```
+
 正在被执行的 goroutine 发生以下情况时让出当前 goroutine 的执行权，并调度后面的
 goroutine 执行：
- IO 操作
- Channel 阻塞
- system call
- 运行较⻓时间
-如果一个 goroutine 执行时间太⻓，scheduler 会在其 G 对象上打上一个标志（
-preempt），当这个 goroutine 内部发生函数调用的时候，会先主动检查这个标志，如
-果为 true 则会让出执行权。
-main 函数里启动的 goroutine 其实是一个没有 IO 阻塞、没有 Channel 阻塞、没有
-system call、没有函数调用的死循环。
-也就是，它无法主动让出自己的执行权，即使已经执行很⻓时间，scheduler 已经标志
-了 preempt。
-而 golang 的 GC 动作是需要所有正在运行 goroutine  都停止后进行的。因此，程序
-会卡在  runtime.GC() 等待所有协程退出。
-```
-### 常⻅语法题目 二
 
-### 1、写出下面代码输出内容。
+-  IO 操作
+
+- Channel 阻塞
+- system call
+
+- 运行较长时间
+
+如果一个 goroutine 执行时间太长，scheduler 会在其 G 对象上打上一个标志（preempt），当这个 goroutine **内部发生函数调用的时候**，会先主动检查这个标志，如果为 true 则会让出执行权。main 函数里启动的 goroutine 其实是一个没有 IO 阻塞、没有 Channel 阻塞、没有system call、**没有函数调用**的死循环。也就是，它无法主动让出自己的执行权，即使已经执行很长时间，scheduler 已经标志了 preempt。而 golang 的 GC 动作是需要所有正在运行 goroutine  都停止后进行的。因此，程序会卡在  runtime.GC() 等待所有协程退出。注意这里和go的版本有关系，1.14以后引入了基于信号的抢占式调用，可以将这些执行无限循环的goroutine“停”下来。
+
+参考：[深度解密Go语言之基于信号的抢占式调度](https://mp.weixin.qq.com/s?__biz=MjM5MDUwNTQwMQ==&mid=2257485757&idx=1&sn=23d1f0f3b005a1339db1d33378b846d6&scene=58&subscene=0)
+
+### （11） 以下代码有什么问题，说明原因
 
 ```
-23 import (
-4 "fmt"
+type student struct {
+	Name string
+	Age  int
+}
+
+func pase_student() {
+	m := make(map[string]*student)
+	stus := []student{
+		{Name: "zhou", Age: 24},
+		{Name: "li", Age: 23},
+		{Name: "wang", Age: 22},
+	}
+	for _, stu := range stus {
+		m[stu.Name] = &stu
+	}
+}
 ```
-(^5) "runtime"
-(^6) )
-(^78) func main() {
-(^9) var i byte
-(^10) go func() {
-11 for i = 0; i <= 255; i++ {
-12 }
-13 }()
-(^14) fmt.Println("Dropping mic")
-(^15) // Yield execution to force executing other goroutines
-(^16) runtime.Gosched()
-(^17) runtime.GC()
-(^18) fmt.Println("Done")
-(^19) }
-1 go func() {
-(^2) for {}
-(^3) }
+
+#### 解析：
+
+golang 的  `for ... range` 语法中， `stu` 变量会被复用，每次循环会将集合中的值复制
+给这个变量，因此，会导致最后 `m`中的 `map` 中储存的都是`stus` 最后一个 `student`的值
+
+### （12）下面的代码会输出什么，并说明原因
+
+```go
+type People struct{}
+
+func (p *People) ShowA() {
+	fmt.Println("showA")
+	p.ShowB()
+}
+func (p *People) ShowB() {
+	fmt.Println("showB")
+}
+
+type Teacher struct {
+	People
+}
+
+func (t *Teacher) ShowB() {
+	fmt.Println("teacher showB")
+}
+func main() {
+	t := Teacher{}
+	t.ShowA()
+	t.ShowB()
+}
+## 结果
+showA
+showB
+teacher showB
+```
+
+#### 解析：
+
+golang 语言中没有继承概念，只有组合，也没有虚方法，更没有重载。因此， *Teacher  的  ShowB  不会覆写被组合的 People  的方法。
+
+### （13）下面代码输出什么？
+
+```go
+func calc(index string, a, b int) int {
+	ret := a + b
+	fmt.Println(index, a, b, ret)
+	return ret
+}
+func main() {
+	a := 1
+	b := 2
+	defer calc("1", a, calc("10", a, b))
+	a = 0
+	defer calc("2", a, calc("20", a, b))
+	b = 1
+}
+```
+
+输出结果为：
+
+```
+10 1 2 3
+20 0 2 2
+2 0 2 2
+1 1 3 4
+```
 
 
 #### 解析：
 
-```
-defer 关键字的实现跟go关键字很类似，不同的是它调用的是 runtime.deferproc而不
-是runtime.newproc 。
-在defer 出现的地方，插入了指令 call runtime.deferproc，然后在函数返回之前的地
-方，插入指令call runtime.deferreturn 。
-goroutine的控制结构中，有一张表记录defer ，调用runtime.deferproc 时会将需要
-defer的表达式记录在表中，而在调用 runtime.deferreturn 的时候，则会依次从defer表
-中出栈并执行。
-因此，题目最后输出顺序应该是 defer 定义顺序的倒序。 panic  错误并不能终
-止  defer 的执行。
-```
-### 2、 以下代码有什么问题，说明原因
-
-#### 解析：
-
-```
-golang 的  for ... range 语法中， stu 变量会被复用，每次循环会将集合中的值复制
-给这个变量，因此，会导致最后 m中的 map 中储存的都是stus 最后一个 student
-```
-```
-1 package main
-23 import (
-4 "fmt"
-5 )
-```
-(^67) func main() {
-(^8) defer_call()
-(^9) }
-(^1011) func defer_call() {
-(^12) defer func() { fmt.Println("打印前") }()
-(^13) defer func() { fmt.Println("打印中") }()
-14 defer func() { fmt.Println("打印后") }()
-1516 panic("触发异常")
-17 }
-1 type student struct {
-(^2) Name string
-(^3) Age int
-(^4) }
-(^56) func pase_student() {
-(^7) m := make(map[string]*student)
-8 stus := []student{
-9 {Name: "zhou", Age: 24},
-10 {Name: "li", Age: 23},
-(^11) {Name: "wang", Age: 22},
-(^12) }
-(^13) for _, stu := range stus {
-(^14) m[stu.Name] = &stu
-(^15) }
-(^16) }
-
-
-#### 的值。
-
-### 3、下面的代码会输出什么，并说明原因
-
-#### 解析：
-
-```
-这个输出结果决定来自于调度器优先调度哪个G。从runtime的源码可以看到，当创建一
-个G时，会优先放入到下一个调度的runnext 字段上作为下一次优先调度的G。因此，
-最先输出的是最后创建的G，也就是9.
-```
-```
-1 func main() {
-```
-(^2) runtime.GOMAXPROCS(1)
-(^3) wg := sync.WaitGroup{}
-(^4) wg.Add(20)
-5 for i := 0; i < 10; i++ {
-6 go func() {
-7 fmt.Println("i: ", i)
-(^8) wg.Done()
-(^9) }()
-(^10) }
-(^11) for i := 0; i < 10; i++ {
-(^12) go func(i int) {
-(^13) fmt.Println("i: ", i)
-14 wg.Done()
-15 }(i)
-16 }
-(^17) wg.Wait()
-(^18) }
-1 func newproc(siz int32, fn *funcval) {
-2 argp := add(unsafe.Pointer(&fn), sys.PtrSize)
-3 gp := getg()
-4 pc := getcallerpc()
-(^5) systemstack(func() {
-(^6) newg := newproc1(fn, argp, siz, gp, pc)
-(^78) _p_ := getg().m.p.ptr()
-(^9) //新创建的G会调用这个方法来决定如何调度
-(^10) runqput(_p_, newg, true)
-1112 if mainStarted {
-13 wakep()
-14 }
-(^15) })
-(^16) }
-(^17) ...
-(^1819) if next {
-(^20) retryNext:
-(^21) oldnext := _p_.runnext
-22 //当next是true时总会将新进来的G放入下一次调度字段中
-23 if !_p_.runnext.cas(oldnext, guintptr(unsafe.Pointer(gp))) {
-
-
-### 4、下面代码会输出什么？
-
-#### 解析：
-
-```
-输出结果为 showA、 showB。golang 语言中没有继承概念，只有组合，也没有虚方
-法，更没有重载。因此， *Teacher  的  ShowB  不会覆写被组合的 People  的方法。
-```
-### 5、下面代码会触发异常吗？请详细说明
-
-24 goto retryNext
-25 }
-
-(^26) if oldnext == 0 {
-(^27) return
-(^28) }
-(^29) // Kick the old runnext out to the regular run queue.
-(^30) gp = oldnext.ptr()
-31 }
-1 type People struct{}
-(^23) func (p *People) ShowA() {
-(^4) fmt.Println("showA")
-5 p.ShowB()
-6 }
-7 func (p *People) ShowB() {
-(^8) fmt.Println("showB")
-(^9) }
-(^1011) type Teacher struct {
-(^12) People
-(^13) }
-1415 func (t *Teacher) ShowB() {
-16 fmt.Println("teacher showB")
-17 }
-(^1819) func main() {
-(^20) t := Teacher{}
-(^21) t.ShowA()
-(^22) }
-1 func main() {
-(^2) runtime.GOMAXPROCS(1)
-3 int_chan := make(chan int, 1)
-4 string_chan := make(chan string, 1)
-5 int_chan <- 1
-(^6) string_chan <- "hello"
-(^7) select {
-(^8) case value := <-int_chan:
-(^9) fmt.Println(value)
-(^10) case value := <-string_chan:
-
-
-#### 解析：
-
-```
-结果是随机执行。golang 在多个 case  可读的时候会公平的选中一个执行。
-```
-### 6、下面代码输出什么？
-
-#### 解析：
-
-#### 输出结果为：
-
-```
-defer 在定义的时候会计算好调用函数的参数，所以会优先输出 10 、 20  两个参
+`defer` 在定义的时候会计算好调用函数的参数，所以会优先输出`10` 、`20` 两个参
 数。然后根据定义的顺序倒序执行。
+
+### （14）下面代码输出什么？
+
+```go
+func main() {
+	s := make([]int, 5)
+	s = append(s, 1, 2, 3)
+	fmt.Println(s)
+}
 ```
-### 7、请写出以下输入内容
+
+输出为 `0 0 0 0 0 1 2 3` 。
 
 #### 解析：
 
-#### 输出为  0 0 0 0 0 1 2 3 。
+`make` 在初始化切片时指定了长度，所以追加数据时会从 `len(s)`  位置开始填充数据。
+
+### （15）下面的代码有什么问题?
 
 ```
-make 在初始化切片时指定了⻓度，所以追加数据时会从 len(s)  位置开始填充数据。
+type UserAges struct {
+	ages map[string]int
+	sync.Mutex
+}
+
+func (ua *UserAges) Add(name string, age int) {
+	ua.Lock()
+	defer ua.Unlock()
+	ua.ages[name] = age
+}
+func (ua *UserAges) Get(name string) int {
+	if age, ok := ua.ages[name]; ok {
+		return age
+	}
+	return -1
+}
 ```
-11 panic(value)
-12 }
-
-(^13) }
-1 func calc(index string, a, b int) int {
-(^2) ret := a + b
-(^3) fmt.Println(index, a, b, ret)
-(^4) return ret
-(^5) }
-67 func main() {
-8 a := 1
-9 b := 2
-(^10) defer calc("1", a, calc("10", a, b))
-(^11) a = 0
-(^12) defer calc("2", a, calc("20", a, b))
-(^13) b = 1
-(^14) }
-1 10 1 2 3
-2 20 0 2 2
-3 2 0 2 2
-(^4) 1 1 3 4
-1 func main() {
-(^2) s := make([]int, 5)
-(^3) s = append(s, 1, 2, 3)
-(^4) fmt.Println(s)
-(^5) }
-
-
-### 8、下面的代码有什么问题?
 
 #### 解析：
 
+在执行 Get方法时可能被`panic`。虽然有使用`sync.Mutex`做写锁，但是map是并发读写不安全的。map属于引用类型，并发读写时多个协程是通过指针访问同一个地址，即访问共享变量，此时同时读写资源存在竞争关系。会报错误信息:`“fatal error: concurrent map read and map write”`。因此，在 Get  中也需要加锁，因为这里只是读，建议使用读写锁  `sync.RWMutex` 。
+
+### （16）以下代码能编译过去吗？为什么？
+
+```go
+package main
+
+import (
+	"fmt"
+)
+
+type People interface {
+	Speak(string) string
+}
+type Student struct{}
+
+func (stu *Student) Speak(think string) (talk string) {
+	if think == "bitch" {
+		talk = "You are a good boy"
+	} else {
+		talk = "hi"
+	}
+	return
+}
+func main() {
+	var peo People = Student{} // 这里换成&Student{}
+	think := "bitch"
+	fmt.Println(peo.Speak(think))
+}
 ```
-在执行 Get方法时可能被panic。
-虽然有使用sync.Mutex做写锁，但是map是并发读写不安全的。map属于引用类型，并
-发读写时多个协程⻅是通过指针访问同一个地址，即访问共享变量，此时同时读写资源
-存在竞争关系。会报错误信息:“fatal error: concurrent map read and map write”。
-因此，在 Get  中也需要加锁，因为这里只是读，建议使用读写锁  sync.RWMutex 。
-```
-### 9、下面的迭代会有什么问题？
 
 #### 解析：
 
-```
-默认情况下  make 初始化的  channel  是无缓冲的，也就是在迭代写时会阻塞。
-```
-### 10、以下代码能编译过去吗？为什么？
+- 编译失败，值类型  `Student{}` 未实现接口 `People` 的方法，不能定义为 `People` 类
+  型。
+- 在 golang 语言中， `Student`  和  `*Student`  是两种类型，第一个是表示 Student  本
+  身，第二个是指向  Student  的指针。
 
-```
-1 type UserAges struct {
-```
-(^2) ages map[string]int
-(^3) sync.Mutex
-(^4) }
-(^56) func (ua *UserAges) Add(name string, age int) {
-7 ua.Lock()
-8 defer ua.Unlock()
-(^9) ua.ages[name] = age
-(^10) }
-(^1112) func (ua *UserAges) Get(name string) int {
-(^13) if age, ok := ua.ages[name]; ok {
-(^14) return age
-(^15) }
-16 return -
-17 }
-1 func (set *threadSafeSet) Iter() <-chan interface{} {
-(^2) ch := make(chan interface{})
-(^3) go func() {
-4 set.RLock()
-56 for elem := range set.s {
-7 ch <- elem
-(^8) }
-(^109) close(ch)
-(^11) set.RUnlock()
-(^1213) }()
-(^14) return ch
-(^15) }
-
-
-#### 解析：
-
-```
-编译失败，值类型  Student{} 未实现接口 People 的方法，不能定义为 People 类
-型。
-在 golang 语言中， Student  和  *Student  是两种类型，第一个是表示 Student  本
-身，第二个是指向  Student  的指针。
-```
-### 11、以下代码打印出来什么内容，说出为什么。。。
+### （17）、以下代码打印出来什么内容，说出为什么。。。
 
 ```
 1 package main
@@ -627,41 +496,6 @@ make 在初始化切片时指定了⻓度，所以追加数据时会从 len(s) 
 4 "fmt"
 5 )
 ```
-(^67) type People interface {
-(^8) Speak(string) string
-(^9) }
-(^1011) type Student struct{}
-(^1213) func (stu *Student) Speak(think string) (talk string) {
-(^14) if think == "bitch" {
-15 talk = "You are a good boy"
-16 } else {
-17 talk = "hi"
-(^18) }
-(^19) return
-(^20) }
-(^2122) func main() {
-(^23) var peo People = Student{}
-24 think := "bitch"
-25 fmt.Println(peo.Speak(think))
-26 }
-1 package main
-(^23) import (
-(^4) "fmt"
-(^5) )
-67 type People interface {
-8 Show()
-9 }
-(^1011) type Student struct{}
-(^1213) func (stu *Student) Show() {
-(^1415) }
-(^1617) func live() People {
-(^18) var stu *Student
-19 return stu
-20 }
-2122 func main() {
-(^23) if live() == nil {
-(^24) fmt.Println("AAAAAAA")
-
 
 #### 解析：
 
@@ -669,6 +503,16 @@ make 在初始化切片时指定了⻓度，所以追加数据时会从 len(s) 
 跟上一题一样，不同的是 *Student  的定义后本身没有初始化值，所
 以  *Student 是  nil 的，但是 *Student  实现了 People  接口，接口不为  nil 。
 ```
+
+
+
+
+
+
+
+
+
+
 ### 在 golang 协程和channel配合使用
 
 ```
