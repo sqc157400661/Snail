@@ -490,20 +490,39 @@ func main() {
 
 ### （17）、以下代码打印出来什么内容，说出为什么。。。
 
-```
-1 package main
-23 import (
-4 "fmt"
-5 )
+```go
+package main
+
+import (
+	"fmt"
+)
+
+type People interface {
+	Show()
+}
+type Student struct{}
+
+func (stu *Student) Show() {
+}
+func live() People {
+	var stu *Student
+	return stu
+}
+func main() {
+	if live() == nil {
+		fmt.Println("AAAAAAA")
+	} else {
+		fmt.Println("BBBBBBB")
+	}
+}
+
 ```
 
 #### 解析：
 
-```
-跟上一题一样，不同的是 *Student  的定义后本身没有初始化值，所
-以  *Student 是  nil 的，但是 *Student  实现了 People  接口，接口不为  nil 。
-```
+跟上一题一样，不同的是 *Student  的定义后本身没有初始化值，所以  *Student 是  nil 的，但是 *Student  实现了 People  接口，接口不为  nil 。
 
+原理参考：https://www.kancloud.cn/aceld/golang/1958316
 
 
 
@@ -528,319 +547,8 @@ func main() {
 3.golang 中有专用的 select case  语法从管道读取数据。
 示例代码如下：
 
-### 实现阻塞读且并发安全的map
-
-```
-GO里面MAP如何实现key不存在 get操作等待 直到key存在或者超时，保证并发安全，
-且需要实现以下接口：
-```
-25 } else {
-26 fmt.Println("BBBBBBB")
-
-(^27) }
-(^28) }
-1 func main() {
-(^2) out := make(chan int)
-(^3) wg := sync.WaitGroup{}
-(^4) wg.Add(2)
-5 go func() {
-6 defer wg.Done()
-7 for i := 0; i < 5; i++ {
-(^8) out <- rand.Intn(5)
-(^9) }
-(^10) close(out)
-(^11) }()
-(^12) go func() {
-(^13) defer wg.Done()
-14 for i := range out {
-15 fmt.Println(i)
-16 }
-(^17) }()
-(^18) wg.Wait()
-(^19) }
-1 type sp interface {
 
 
-#### 解析：
-
-```
-看到阻塞协程第一个想到的就是 channel ，题目中要求并发安全，那么必须用锁，还要
-实现多个 goroutine 读的时候如果值不存在则阻塞，直到写入值，那么每个键值需要有
-一个阻塞 goroutine  的  channel 。
-实现如下：
-```
-### 高并发下的锁与map的读写
-
-```
-场景：在一个高并发的web服务器中，要限制IP的频繁访问。现模拟100个IP同时并发访问服
-务器，每个IP要重复访问1000次。
-每个IP三分钟之内只能访问一次。修改以下代码完成该过程，要求能成功输出 success:
-```
-```
-Out(key string, val interface{}) //存入key /val，如果该key读取的
-goroutine挂起，则唤醒。此方法不会阻塞，时刻都可以立即执行并返回
-```
-```
-2
-```
-```
-Rd(key string, timeout time.Duration) interface{} //读取一个key，如果
-key不存在阻塞，等待key存在或者超时
-```
-```
-3
-```
-(^4) }
-1 type Map struct {
-(^2) c map[string]*entry
-(^3) rmx *sync.RWMutex
-(^4) }
-(^5) type entry struct {
-(^6) ch chan struct{}
-(^7) value interface{}
-8 isExist bool
-9 }
-1011 func (m *Map) Out(key string, val interface{}) {
-(^12) m.rmx.Lock()
-(^13) defer m.rmx.Unlock()
-(^14) item, ok := m.c[key]
-(^15) if !ok {
-(^16) m.c[key] = &entry{
-17 value: val,
-18 isExist: true,
-19 }
-(^20) return
-(^21) }
-(^22) item.value = val
-(^23) if !item.isExist {
-(^24) if item.ch != nil {
-(^25) close(item.ch)
-26 item.ch = nil
-27 }
-28 }
-(^29) return
-(^30) }
-1 package main
-(^2)
-
-
-```
-解析
-该问题主要考察了并发情况下map的读写问题，而给出的初始代码，又存在 for 循环中启动
-goroutine 时变量使用问题以及 goroutine 执行滞后问题。
-因此，首先要保证启动的 goroutine 得到的参数是正确的，然后保证 map 的并发读写，最
-后保证三分钟只能访问一次。
-多CPU核心下修改 int 的值极端情况下会存在不同步情况，因此需要原子性的修改int值。
-下面给出的实例代码，是启动了一个协程每分钟检查一下 map 中的过期 ip， for 启动协
-程时传参。
-```
-```
-3 import (
-4 "fmt"
-```
-(^5) "time"
-(^6) )
-(^7)
-(^8) type Ban struct {
-(^9) visitIPs map[string]time.Time
-10 }
-11
-12 func NewBan() *Ban {
-(^13) return &Ban{visitIPs: make(map[string]time.Time)}
-(^14) }
-(^15) func (o *Ban) visit(ip string) bool {
-(^16) if _, ok := o.visitIPs[ip]; ok {
-(^17) return true
-(^18) }
-19 o.visitIPs[ip] = time.Now()
-20 return false
-21 }
-(^22) func main() {
-(^23) success := 0
-(^24) ban := NewBan()
-(^25) for i := 0; i < 1000; i++ {
-(^26) for j := 0; j < 100; j++ {
-27 go func() {
-28 ip := fmt.Sprintf("192.168.1.%d", j)
-29 if !ban.visit(ip) {
-(^30) success++
-(^31) }
-(^32) }()
-(^33) }
-(^34)
-(^35) }
-36 fmt.Println("success:", success)
-37 }
-1 package main
-23 import (
-4 "context"
-(^5) "fmt"
-(^6) "sync"
-
-
-```
-7 "sync/atomic"
-8 "time"
-```
-(^9) )
-(^1011) type Ban struct {
-(^12) visitIPs map[string]time.Time
-(^13) lock sync.Mutex
-(^14) }
-1516 func NewBan(ctx context.Context) *Ban {
-17 o := &Ban{visitIPs: make(map[string]time.Time)}
-18 go func() {
-(^19) timer := time.NewTimer(time.Minute * 1)
-(^20) for {
-(^21) select {
-(^22) case <-timer.C:
-(^23) o.lock.Lock()
-(^24) for k, v := range o.visitIPs {
-25 if time.Now().Sub(v) >= time.Minute*1 {
-26 delete(o.visitIPs, k)
-27 }
-(^28) }
-(^29) o.lock.Unlock()
-(^30) timer.Reset(time.Minute * 1)
-(^31) case <-ctx.Done():
-(^32) return
-33 }
-34 }
-35 }()
-(^36) return o
-(^37) }
-(^38) func (o *Ban) visit(ip string) bool {
-(^39) o.lock.Lock()
-(^40) defer o.lock.Unlock()
-(^41) if _, ok := o.visitIPs[ip]; ok {
-42 return true
-43 }
-44 o.visitIPs[ip] = time.Now()
-(^45) return false
-(^46) }
-(^47) func main() {
-(^48) success := int64(0)
-(^49) ctx, cancel := context.WithCancel(context.Background())
-50 defer cancel()
-5152 ban := NewBan(ctx)
-5354 wait := &sync.WaitGroup{}
-(^5556) wait.Add(1000 * 100)
-(^57) for i := 0; i < 1000; i++ {
-(^58) for j := 0; j < 100; j++ {
-(^59) go func(j int) {
-(^60) defer wait.Done()
-
-
-### 写出以下逻辑，要求每秒钟调用一次proc并保证程序不退出?
-
-```
-解析
-题目主要考察了两个知识点：
-1.定时执行执行任务
-2.捕获 panic 错误
-题目中要求每秒钟执行一次，首先想到的就是 time.Ticker 对象，该函数可每秒钟往 chan
-中放一个 Time ,正好符合我们的要求。
-在  golang  中捕获  panic  一般会用到  recover()  函数。
-```
-61 ip := fmt.Sprintf("192.168.1.%d", j)
-62 if !ban.visit(ip) {
-
-(^63) atomic.AddInt64(&success, 1)
-(^64) }
-(^65) }(j)
-(^66) }
-(^6768) }
-69 wait.Wait()
-7071 fmt.Println("success:", success)
-72 }
-1 package main
-(^23) func main() {
-(^4) go func() {
-(^5) // 1 在这里需要你写算法
-(^6) // 2 要求每秒钟调用一次proc函数
-(^7) // 3 要求程序不能退出
-(^8) }()
-109 select {}
-11 }
-1213 func proc() {
-(^14) panic("ok")
-(^15) }
-1 package main
-(^23) import (
-(^4) "fmt"
-(^5) "time"
-(^6) )
-(^78) func main() {
-(^9) go func() {
-10 // 1 在这里需要你写算法
-11 // 2 要求每秒钟调用一次proc函数
-12 // 3 要求程序不能退出
-(^1314) t := time.NewTicker(time.Second * 1)
-(^15) for {
-(^16) select {
-(^17) case <-t.C:
-(^18) go func() {
-
-
-### 为 sync.WaitGroup 中Wait函数支持 WaitTimeout 功能.
-
-```
-解析
-```
-19 defer func() {
-20 if err := recover(); err != nil {
-
-(^21) fmt.Println(err)
-(^22) }
-(^23) }()
-(^24) proc()
-(^25) }()
-26 }
-27 }
-28 }()
-(^2930) select {}
-(^31) }
-(^3233) func proc() {
-(^34) panic("ok")
-(^35) }
-1 package main
-(^23) import (
-(^4) "fmt"
-5 "sync"
-6 "time"
-7 )
-(^89) func main() {
-(^10) wg := sync.WaitGroup{}
-(^11) c := make(chan struct{})
-(^12) for i := 0; i < 10; i++ {
-(^13) wg.Add(1)
-(^14) go func(num int, close <-chan struct{}) {
-15 defer wg.Done()
-16 <-close
-(^17) fmt.Println(num)
-(^18) }(i, c)
-(^19) }
-(^2021) if WaitTimeout(&wg, time.Second*5) {
-(^22) close(c)
-(^23) fmt.Println("timeout exit")
-24 }
-25 time.Sleep(time.Second * 10)
-26 }
-(^2728) func WaitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
-(^29) // 要求手写代码
-(^30) // 要求sync.WaitGroup支持timeout功能
-(^31) // 如果timeout到了超时时间返回true
-(^32) // 如果WaitGroup自然结束返回false
-(^33) }
-
-
-```
-首先  sync.WaitGroup 对象的  Wait  函数本身是阻塞的，同时，超时用到的
-time.Timer 对象也需要阻塞的读。
-同时阻塞的两个对象肯定要每个启动一个协程,每个协程去处理一个阻塞，难点在于怎么知道
-哪个阻塞先完成。
-目前我用的方式是声明一个没有缓冲的chan ，谁先完成谁优先向管道中写入数据。
-```
 ### 语法找错题
 
 ```

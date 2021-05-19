@@ -5,20 +5,20 @@ import (
 )
 
 type People interface {
-	Speak(string) string
+	Show()
 }
 type Student struct{}
 
-func (stu *Student) Speak(think string) (talk string) {
-	if think == "bitch" {
-		talk = "You are a good boy"
-	} else {
-		talk = "hi"
-	}
-	return
+func (stu *Student) Show() {
+}
+func live() People {
+	var stu *Student
+	return stu
 }
 func main() {
-	var peo People = Student{}
-	think := "bitch"
-	fmt.Println(peo.Speak(think))
+	if live() == nil {
+		fmt.Println("AAAAAAA")
+	} else {
+		fmt.Println("BBBBBBB")
+	}
 }
