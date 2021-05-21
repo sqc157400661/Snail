@@ -244,7 +244,7 @@ select查询语句是不会加锁的，但是`select for update`除了有查询�
 
 ### (16) MySQL事务得四大特性以及实现原理
 
-![1621472158370](D:\www\Snail\Go面试系列\images\1621472158370.png)
+![1621472158370](http://cdn.xiaot123.com/blog/2021-05/1621472158370.png-blog)
 
 - 原子性： 事务作为一个整体被执行，包含在其中的对数据库的操作要么全部被执行，要么都不执行。
 - 一致性： 指在事务开始之前和事务结束以后，数据不会被破坏，假如A账户给B账户转10块钱，不管成功与否，A和B的总金额是不变的。
@@ -370,7 +370,7 @@ sharding-jdbc目前是基于jdbc驱动，无需额外的proxy，因此也无需�
 
 嘻嘻，先复习一下主从复制原理吧，如图：
 
-![1621487628853](D:\www\Snail\Go面试系列\images\1621487628853.png)
+![1621487628853](http://cdn.xiaot123.com/blog/2021-05/1621487628853.png-blog)
 
 主从复制分了五个步骤进行：
 
@@ -421,7 +421,7 @@ sharding-jdbc目前是基于jdbc驱动，无需额外的proxy，因此也无需�
 
 先看一下Mysql的逻辑架构图吧~
 
-![1621488465233](D:\www\Snail\Go面试系列\images\1621488465233.png)
+![1621488465233](http://cdn.xiaot123.com/blog/2021-05/1621488465233.png-blog)
 
 
 ### 查询语句过程：
@@ -483,7 +483,7 @@ Bytes_received和Bytes_sent 和服务器之间来往的流量。 Com_*服务器�
 
 ## （32） Mysql中有哪几种锁，列举一下？
 
-![1621489316109](D:\www\Snail\Go面试系列\images\1621489316109.png)
+![1621489316109](http://cdn.xiaot123.com/blog/2021-05/1621489316109.png-blog)
 
 参考：http://blog.xiaot123.com/mysql-innodb-tuzpc
 
@@ -592,7 +592,7 @@ ps ：我觉得rename方式会更好
 
 ## （42）一条Sql的执行顺序？
 
-![1621491746274](D:\www\Snail\Go面试系列\images\1621491746274.png)
+![1621491746274](http://cdn.xiaot123.com/blog/2021-05/1621491746274.png-blog)
 
 
 
