@@ -8,13 +8,13 @@ go汇编格式跟前面讨论过的AT&T汇编基本上差不多，但也有些�
 
 **寄存器**
 
-go汇编语言中使用的寄存器的名字与AMD64不太一样，下表显示了它们之间的对应关系：
+go汇编语言中使用的寄存器的名字与`AMD64`不太一样，下表显示了它们之间的对应关系：
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/31W1agpaMjxBs5UzrTR0TYF0ooWj2BibwWWEVPficiaUhsChV5FD55r0GwlMkgtmeArfEZdqR2WkicefjmMvC12ZDQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![图片](D:\www\Snail\Go专题系列\images\324erdsfsdfsdafsdafds.png)
 
 
 
-除了这些跟AMD64 CPU硬件寄存器一一对应的寄存器外，go汇编还引入了几个没有任何硬件寄存器与之对应的虚拟寄存器，这些寄存器一般用来存放内存地址，引入它们的主要目的是为了方便程序员和编译器用来定位内存中的代码和数据。
+除了这些跟`AMD64` CPU硬件寄存器一一对应的寄存器外，go汇编还引入了几个没有任何硬件寄存器与之对应的虚拟寄存器，这些寄存器一般用来存放内存地址，引入它们的主要目的是为了方便程序员和编译器用来定位内存中的代码和数据。
 
 下面重点介绍在go汇编中常见的2个虚拟寄存器的使用方法：
 
@@ -32,7 +32,7 @@ MOVQbuf+0(FP), BX// gobuf -->bx
 
 MOVQ	buf+0(FP), BX这一条指令把调用者传递进来的指针buf放入BX寄存器中，可以看到，在gogo函数是通过buf+0(FP)这种方式获取到参数的。从被调用函数（此处为gogo函数）的角度来看，FP与函数栈帧之间的关系如下图，可以看出FP寄存器指向调用者的栈帧，而不是被调用函数的栈帧。
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/31W1agpaMjxBs5UzrTR0TYF0ooWj2BibwtZ6kItk2v9ic5ibbRH1hCRHDzYsqh7LUMNhmVdS8mpVNxRvISibd69pMQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![图片](D:\www\Snail\Go专题系列\images\456dsfsdf6ytxfdgfvhgfdhfghfgdjnsfwe5re4t.png)
 
 
 
