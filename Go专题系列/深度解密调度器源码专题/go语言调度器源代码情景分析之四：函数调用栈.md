@@ -10,7 +10,7 @@
 
 
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/31W1agpaMjwk5M2CqFIwvmzqjgsUUCJUxGNibbEUb2SS9kQMg4cQazzAYcJCLDyYtBygSO0nXHxia8Bro4vmGibug/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![图片](D:\www\Snail\Go专题系列\images\234wx_fmdfsdafdsafsdf.png)
 
 
 
@@ -68,7 +68,7 @@ A()->B()->C()
 
 
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/31W1agpaMjwk5M2CqFIwvmzqjgsUUCJUmNeicOzPmzZsAxuqhzVCGMLdaKNpaQTIUwicmznTaL4HxlLeueygtYkw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![图片](D:\www\Snail\Go专题系列\images\sfsdafsaf562566bvnbnf.png)
 
 
 
@@ -86,7 +86,7 @@ A()->B()->C()
 
 
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/31W1agpaMjwk5M2CqFIwvmzqjgsUUCJUicDHCxW7O5FfVmtfY9941ibG9XCy87gce2DnwnyzBL38zdxfOG5acPiag/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![图片](D:\www\Snail\Go专题系列\images\234dsfssadfsfjyhuyfgfdjfghf.png)
 
 
 
@@ -94,16 +94,23 @@ A()->B()->C()
 
 
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/31W1agpaMjwk5M2CqFIwvmzqjgsUUCJUfyfBBUbV6BiafISvAPAIhOoFIxs5zBqb4Hv5TvZ0k0bt3uLaw35GxXw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![图片](D:\www\Snail\Go专题系列\images\654fgsdfsdfsfgdfgdgfd51g651515.png)
 
 
 
-可以看到，现在D函数的栈帧其实使用的是之前调用B、C两个函数所使用的栈内存，这没有问题，因为B和C函数已经执行完了，现在D函数重用了这块内存，这也是为什么在C语言中绝对不要返回函数局部变量的地址，因为同一个地址的栈内存会被重用，这就会造成意外的bug，而go语言中没有这个限制，因为go语言的编译器比较智能，当它发现程序返回了某个局部变量的地址，编译器会把这个变量放到堆上去，而不会放在栈上。同样，这里我们还是需要注意rbp和rsp这两个寄存器现在指向了D函数的栈帧。从上面的分析我们可以看出，**寄存器rbp和rsp始终指向正在执行的函数的栈帧**。
+可以看到，现在D函数的栈帧其实使用的是之前调用B、C两个函数所使用的栈内存，这没有问题，因为B和C函数已经执行完了，现在D函数重用了这块内存，这也是为什么在C语言中绝对不要返回函数局部变量的地址，**因为同一个地址的栈内存会被重用**，这就会造成意外的bug，而go语言中没有这个限制，因为go语言的编译器比较智能，当它发现程序返回了某个局部变量的地址，编译器会把这个变量放到堆上去，而不会放在栈上。同样，这里我们还是需要注意rbp和rsp这两个寄存器现在指向了D函数的栈帧。从上面的分析我们可以看出，**寄存器rbp和rsp始终指向正在执行的函数的栈帧**。
 
 最后，我们再来看一个递归函数的例子，假设有如下go语言代码片段：
 
-```
-func f(n int) {   if n <= 0 { //递归结束条件 n <= 0       return  }   ......   f(n - 1) //递归调用f函数自己   ......}
+```go
+func f(n int) {
+   if n <= 0 { //递归结束条件 n <= 0
+       return
+  }
+   ......
+   f(n - 1) //递归调用f函数自己
+   ......
+}
 ```
 
 函数f是一个递归函数，f函数会一直递归的调用自己直到参数 n 小于等于0为止，如果我们在其它某个函数里调用了f(10)，而且现在正在执行f(8)的话，则其栈状态如下图所示：
@@ -114,6 +121,6 @@ func f(n int) {   if n <= 0 { //递归结束条件 n <= 0       return  }   ....
 
 
 
-从上图可以看出，即使是同一个函数，每次调用都会产生一个不同的栈帧，因此对于递归函数，每递归一次都会消耗一定的栈内存，如果递归层数太多就有导致栈溢出的风险，这也是为什么我们在实际的开发过程中应该尽量避免使用递归函数的原因之一，另外一个原因是递归函数执行效率比较低，因为它要反复调用函数，而调用函数有较大的性能开销。
+从上图可以看出，即使是同一个函数，每次调用都会产生一个不同的栈帧，因此**对于递归函数，每递归一次都会消耗一定的栈内存**，如果递归层数太多就有导致栈溢出的风险，这也是为什么我们在实际的开发过程中应该尽量避免使用递归函数的原因之一，另外一个原因是递归函数执行效率比较低，因为它要反复调用函数，而调用函数有较大的性能开销。
 
 本节我们简要的介绍了栈的基本概念及它在程序运行过程中的重要作用，但遗留了一些细节问题，比如每个函数的栈帧是怎么分配的，局部变量和参数又是如何保存在栈中的，又是谁把返回地址放在了栈上等等，这些内容我们会在函数调用过程一节加以详细介绍。这里为什么不把细节跟概念放在一起讨论呢，主要是因为我们首先要对栈有个大致的了解，才能更好的理解下一节即将讲述的有关汇编语言相关的知识，而没有汇编语言作为基础，我们又不能很好的理解栈的这些细节问题，所以我们决定把基本概念和用途与细节分开介绍。
