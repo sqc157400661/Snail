@@ -47,7 +47,11 @@ MOVQ	buf+0(FP), BX这一条指令把调用者传递进来的指针buf放入BX寄
 AT&T格式的寄存器操作码一般使用小写且寄存器的名字前面有个%符号，而go汇编使用大写而且寄存器名字前没有%符号，比如:
 
 ```
-# AT&T格式mov %rbp,%rsp# go汇编格式MOVQ BP,SP
+# AT&T格式
+mov %rbp,%rsp
+
+# go汇编格式
+MOVQ BP,SP
 ```
 
 
@@ -65,7 +69,10 @@ AT&T格式的汇编指令中如果有寄存器操作数，则根据寄存器的�
 还是以go runtime中的gogo函数为例：
 
 ```
-// func gogo(buf *gobuf)// restore state from Gobuf; longjmpTEXT runtime·gogo(SB), NOSPLIT, $16-8......
+// func gogo(buf *gobuf)
+// restore state from Gobuf; longjmp
+TEXT runtime·gogo(SB), NOSPLIT, $16-8
+......
 ```
 
 下面对这个函数定义的第一行的各部分做个说明：
