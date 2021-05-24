@@ -1,12 +1,8 @@
-## Redis基础
+# Redis基础
 
-### Redis中的数据结构
+## Redis中的数据结构
 
-```
-原文地址 Redis中的数据结构
-```
-
-### 1. 底层数据结构, 与Redis Value Type之间的关系
+### 1. 底层数据结构, 与`Redis Value Type`之间的关系
 
 对于Redis的使用者来说, Redis作为Key-Value型的内存数据库, 其Value有多种类型.
 
@@ -16,113 +12,98 @@
 - Set
 - ZSet
 
-这些Value的类型, 只是"Redis的用户认为的, Value存储数据的方式". 而在具体实现上,
-各个Type的Value到底如何存储, 这对于Redis的使用者来说是不公开的.
+这些Value的类型, 只是"Redis的用户认为的, Value存储数据的方式". 而在具体实现上,各个Type的Value到底如何存储, 这对于Redis的使用者来说是不公开的.
 举个粟子: 使用下面的命令创建一个Key-Value
 
 ```
 SET "Hello" "World"
 ```
 
-对于Redis的使用者来说, Hello 这个Key, 对应的Value是String类型, 其值为五个ASCII
-字符组成的二进制数据. 但具体在底层实现上, 这五个字节是如何存储的, 是不对用户公
-开的. 即, Value的Type, 只是表象, 具体数据在内存中以何种数据结构存放, 这对于用户
-来说是不必要了解的.
+对于Redis的使用者来说, Hello 这个Key, 对应的Value是String类型, 其值为五个ASCII字符组成的二进制数据. 但具体在底层实现上, 这五个字节是如何存储的, 是不对用户公开的. 即, Value的Type, 只是表象, 具体数据在内存中以何种数据结构存放, 这对于用户来说是不必要了解的.
 
-Redis对使用者暴露了五种 Value Type, 其底层实现的数据结构有8种, 分别是:
+Redis对使用者暴露了五种 `Value Type`, 其底层实现的数据结构有8种, 分别是:
 
-- SDS - simple synamic string - 支持自动动态扩容的字节数组
-- list - 平平无奇的链表
-- dict - 使用双哈希表实现的, 支持平滑扩容的字典
-- zskiplist - 附加了后向指针的跳跃表
-- intset - 用于存储整数数值集合的自有结构
-- ziplist - 一种实现上类似于TLV, 但比TLV复杂的, 用于存储任意数据的有序序列的
+- `SDS - simple synamic string` - 支持自动动态扩容的字节数组
+- `list` - 平平无奇的链表
+- `dict` - 使用双哈希表实现的, 支持平滑扩容的字典
+- `zskiplist` - 附加了后向指针的跳跃表
+- `intset` - 用于存储整数数值集合的自有结构
+- `ziplist` - 一种实现上类似于TLV, 但比TLV复杂的, 用于存储任意数据的有序序列的
   数据结构
-- quicklist - 一种以ziplist作为结点的双链表结构, 实现的非常苟
+- `quicklist` - 一种以ziplist作为结点的双链表结构, 实现的非常苟
+- `zipmap` - 一种用于在小规模场合使用的轻量级字典结构
 
-```
-3 allp []*p // 保存所有的p，len(allp) == gomaxprocs
-45 ncpu int32 // 系统中cpu核的数量，程序启动时由runtime代码初始化
-```
-
-(^6) gomaxprocs int32 // p的最大值，默认等于ncpu，但可以通过GOMAXPROCS修改
-(^78) sched schedt // 调度器结构体对象，记录了调度器的工作状态
-(^109) m0 m // 代表进程的主线程
-(^11) g0 g // m0的g0，也就是m0.g0 = &g0
-1 SET "Hello" "World"
-
-
-```
- zipmap - 一种用于在小规模场合使用的轻量级字典结构
 而衔接"底层数据结构"与"Value Type"的桥梁的, 则是Redis实现的另外一种数据结
-构: redisObject. Redis中的Key与Value在表层都是一个 redisObject 实例, 故该结构有
-所谓的"类型", 即是 ValueType. 对于每一种Value Type 类型的redisObject , 其底层至
+构: `redisObject`. Redis中的Key与Value在表层都是一个 `redisObject` 实例, 故该结构有
+所谓的"类型", 即是 ValueType. 对于每一种Value Type 类型的`redisObject` , 其底层至
 少支持两种不同的底层数据结构来实现. 以应对在不同的应用场景中, Redis的运行效率,
 或内存占用.
-```
+
+
 
 ### 2. 底层数据结构
 
-```
-2.1 SDS - simple dynamic string
+#### 2.1 SDS - simple dynamic string
+
 这是一种用于存储二进制数据的一种结构, 具有动态扩容的特点. 其实现位于src/sds.h
 与src/sds.c中, 其关键定义如下:
-1 typedef char *sds;
-23 /* Note: sdshdr5 is never used, we just access the flags byte directly.
-4 * However is here to document the layout of type 5 SDS strings. */
-5 struct __attribute__ ((__packed__)) sdshdr5 {
+
 ```
+typedef char *sds;
 
-(^6) unsigned char flags; /* 3 lsb of type, and 5 msb of string length */
-(^7) char buf[];
-(^8) };
-(^9) struct __attribute__ ((__packed__)) sdshdr8 {
-(^10) uint8_t len; /* used */
-(^11) uint8_t alloc; /* excluding the header and null terminator */
-12 unsigned char flags; /* 3 lsb of type, 5 unused bits */
-13 char buf[];
-(^14) };
-(^15) struct __attribute__ ((__packed__)) sdshdr16 {
-(^16) uint16_t len; /* used */
-(^17) uint16_t alloc; /* excluding the header and null terminator */
-(^18) unsigned char flags; /* 3 lsb of type, 5 unused bits */
-(^19) char buf[];
-20 };
-21 struct __attribute__ ((__packed__)) sdshdr32 {
-22 uint32_t len; /* used */
-(^23) uint32_t alloc; /* excluding the header and null terminator */
-(^24) unsigned char flags; /* 3 lsb of type, 5 unused bits */
-(^25) char buf[];
-(^26) };
-(^27) struct __attribute__ ((__packed__)) sdshdr64 {
-(^28) uint64_t len; /* used */
-29 uint64_t alloc; /* excluding the header and null terminator */
-30 unsigned char flags; /* 3 lsb of type, 5 unused bits */
-(^31) char buf[];
-(^32) };
-
+/* Note: sdshdr5 is never used, we just access the flags byte directly.
+ * However is here to document the layout of type 5 SDS strings. */
+struct __attribute__ ((__packed__)) sdshdr5 {
+    unsigned char flags; /* 3 lsb of type, and 5 msb of string length */
+    char buf[];
+};
+struct __attribute__ ((__packed__)) sdshdr8 {
+    uint8_t len; /* used */
+    uint8_t alloc; /* excluding the header and null terminator */
+    unsigned char flags; /* 3 lsb of type, 5 unused bits */
+    char buf[];
+};
+struct __attribute__ ((__packed__)) sdshdr16 {
+    uint16_t len; /* used */
+    uint16_t alloc; /* excluding the header and null terminator */
+    unsigned char flags; /* 3 lsb of type, 5 unused bits */
+    char buf[];
+};
+struct __attribute__ ((__packed__)) sdshdr32 {
+    uint32_t len; /* used */
+    uint32_t alloc; /* excluding the header and null terminator */
+    unsigned char flags; /* 3 lsb of type, 5 unused bits */
+    char buf[];
+};
+struct __attribute__ ((__packed__)) sdshdr64 {
+    uint64_t len; /* used */
+    uint64_t alloc; /* excluding the header and null terminator */
+    unsigned char flags; /* 3 lsb of type, 5 unused bits */
+    char buf[];
+};
+```
 
 #### SDS的总体概览如下图:
 
-```
-其中sdshdr是头部, buf是真实存储用户数据的地方. 另外注意, 从命名上能看出来, 这个
-数据结构除了能存储二进制数据, 显然是用于设计作为字符串使用的, 所以在buf中, 用户
-数据后总跟着一个\0. 即图中 "数据" + "\0" 是为所谓的buf
-SDS有五种不同的头部. 其中sdshdr5实际并未使用到. 所以实际上有四种不同的头部,
-分别如下:
-```
+![sds](D:\www\Snail\Go面试系列\images\668722-20180910183925685-224282854.png)
 
-```
- len分别以uint8, uint16, uint32, uint64表示用户数据的⻓度(不包括末尾的\0)
- alloc分别以uint8, uint16, uint32, uint64表示整个SDS, 除过头部与末尾的\0, 剩余
-的字节数.
- flag始终为一字节, 以低三位标示着头部的类型, 高5位未使用.
+其中`sdshdr`是头部, `buf`是真实存储用户数据的地方. 另外注意, 从命名上能看出来, 这个数据结构除了能存储二进制数据, 显然是用于设计作为字符串使用的, 所以在buf中, 用户数据后总跟着一个\0. 即图中 "数据" + "\0" 是为所谓的buf
+
+SDS有五种不同的头部. 其中sdshdr5实际并未使用到. 所以实际上有四种不同的头部,分别如下:
+
+![sdshdr](D:\www\Snail\Go面试系列\images\668722-20180910183940043-66166526.png)
+
+1. `len`分别以`uint8`, `uint16`, `uint32`, `uint64`表示用户数据的长度(不包括末尾的\0)
+2. `alloc`分别以`uint8`, `uint16`, `uint32`, `uint64`表示整个SDS, 除过头部与末尾的\0, 剩余的字节数.
+3. flag始终为一字节, 以低三位标示着头部的类型, 高5位未使用.
+
 当在程序中持有一个SDS实例时, 直接持有的是数据区的头指针, 这样做的用意是: 通过
 这个指针, 向前偏一个字节, 就能取到flag, 通过判断flag低三位的值, 能迅速判断: 头部的
 类型, 已用字节数, 总字节数, 剩余字节数. 这也是为什么sds类型即是char *指针类型别
 名的原因.
 创建一个SDS实例有三个接口, 分别是:
-```
+
+
 
 ```
  所有创建sds实例的接口, 都不会额外分配预留内存空间
@@ -1432,3 +1413,8 @@ PS：值得注意的，在主从复制模式Replication下，从节点达到maxm
 任何异常日志信息，但现象为增量数据无法同步至从节点。
 ```
 
+
+
+参考链接：
+
+https://www.cnblogs.com/neooelric/p/9621736.html
