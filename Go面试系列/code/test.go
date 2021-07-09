@@ -3,24 +3,47 @@ package main
 import "fmt"
 
 func main() {
-	fmt.Println(constructArr([]int{1,2,3,4,5}))
+	fmt.Println(checkInclusion("ab","eidbaooo"))
+	fmt.Println(checkInclusion("ab","eidboaooo"))
 }
 
-func constructArr(a []int) []int {
-	if len(a) ==0 {
-		return nil
+func checkInclusion(s1 string, s2 string) bool {
+	window,need := map[byte]int{},map[byte]int{}
+	for _,v := range s1 {
+		need[byte(v)]++
+
 	}
-	b := make([]int,len(a))
-	tmp :=1
-	b[0] = 1
-	// 下三角
-	for i:=1; i< len(a);i++{
-		b[i] = b[i-1] * a[i-1]
+	left,right,valid :=0,0,0
+	for right < len(s2) {
+		c:=s2[right]
+		right++
+		window[c]++
+		if window[c] == need[c] {
+			valid++
+		}
+		for valid == len(need) {
+			if contain(window,need) && len(window) == len(need){
+				return true
+			}
+			d := s2[left]
+			left++
+			if window[d] == need[d] {
+				valid--
+			}
+			window[d]--
+			if window[d]==0{
+				delete(window,d)
+			}
+		}
 	}
-	// 上三角
-	for i:=len(a)-2;i>=0;i--{
-		tmp *= a[i+1]
-		b[i] *= tmp
+	return false
+}
+
+func contain(window,need map[byte]int) bool{
+	for k,v:=range need{
+		if window[k] != v {
+			return false
+		}
 	}
-	return b
+	return true
 }
