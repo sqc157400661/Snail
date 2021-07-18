@@ -3,47 +3,41 @@ package main
 import "fmt"
 
 func main() {
-	fmt.Println(checkInclusion("ab","eidbaooo"))
-	fmt.Println(checkInclusion("ab","eidboaooo"))
+	fmt.Println(longestPalindrome("babad"))
+	fmt.Println(longestPalindrome("a"))
+	fmt.Println(longestPalindrome("aa"))
+	fmt.Println(longestPalindrome("cbbd"))
 }
 
-func checkInclusion(s1 string, s2 string) bool {
-	window,need := map[byte]int{},map[byte]int{}
-	for _,v := range s1 {
-		need[byte(v)]++
-
-	}
-	left,right,valid :=0,0,0
-	for right < len(s2) {
-		c:=s2[right]
-		right++
-		window[c]++
-		if window[c] == need[c] {
-			valid++
+func longestPalindrome(s string) string {
+	res := ""
+	for i := 0; i < len(s); i++ {
+		// 找到以 s[i] 为中心的回文串
+		s1 := palindrome(s, i, i)
+		// 找到以 s[i] 和 s[i+1] 为中心的回文串
+		s2:=""
+		if i<len(s)-1 && s[i] == s[i+1] {
+			s2 = palindrome(s, i, i+1)
 		}
-		for valid == len(need) {
-			if contain(window,need) && len(window) == len(need){
-				return true
-			}
-			d := s2[left]
-			left++
-			if window[d] == need[d] {
-				valid--
-			}
-			window[d]--
-			if window[d]==0{
-				delete(window,d)
-			}
-		}
+		res = maxLen(res, maxLen(s1, s2))
 	}
-	return false
+	return res
 }
 
-func contain(window,need map[byte]int) bool{
-	for k,v:=range need{
-		if window[k] != v {
-			return false
-		}
+func palindrome(s string, l, r int) string {
+	n := len(s)
+	// 防止索引越界
+	for l >= 0 && r < n && s[l] == s[r] {
+		// 向两边展开
+		l--
+		r++
 	}
-	return true
+	return s[l+1:r]
+}
+
+func maxLen(s1, s2 string) string {
+	if len(s1) > len(s2) {
+		return s1
+	}
+	return s2
 }
